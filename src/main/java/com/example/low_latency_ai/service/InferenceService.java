@@ -1,91 +1,88 @@
 package com.example.low_latency_ai.service;
 
 import ai.djl.huggingface.tokenizers.Encoding;
-import ai.onnxruntime.*;
-import com.example.low_latency_ai.domains.Sentiment;
-import com.example.low_latency_ai.properties.SentimentProperties;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
+import com.example.low_latency_ai.domains.AiModel;
+import com.example.low_latency_ai.domains.Sentiment;
+import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 class InferenceService {
-    private final OrtSession session;
+    private static final String INPUT_IDS = "input_ids";
+    private static final String ATTENTION_MASK = "attention_mask";
+
     private final OrtEnvironment env;
+    private final OrtSession session;
     private final HuggingFaceTokenizer tokenizer;
-    private final SentimentProperties sentimentProperties;
 
-    public Sentiment execute(String text) throws OrtException {
-
-        String[] inputs = {text};
-
-        Encoding[] encodings = tokenizer.batchEncode(inputs);
-
-        long[][] inputIdsData = Arrays.stream(encodings)
-                .map(Encoding::getIds)
-                .toArray(long[][]::new);
-        long[][] attentionMaskData = Arrays.stream(encodings)
-                .map(Encoding::getAttentionMask)
-                .toArray(long[][]::new);
-
-        // Perform inference
-        try (OnnxTensor inputIdsTensor = OnnxTensor.createTensor(env, inputIdsData);
-             OnnxTensor attentionMaskTensor = OnnxTensor.createTensor(env, attentionMaskData)) {
-
-            OrtSession.Result result = session.run(
-                    Map.of("input_ids", inputIdsTensor,
-                            "attention_mask", attentionMaskTensor),
-                    session.getOutputNames()
-            );
-
-            float[][] outputData = (float[][]) result.get(0).getValue();
-
-
-
-            float[] firstRow  =  outputData[0];
-
-            float[] probabilities = softmax(firstRow);
-
-            // Look at first index
-            float sentimentFirstValue = probabilities[probabilities.length -1];
-            if(sentimentFirstValue > sentimentProperties.postiveThreshold())
-                return Sentiment.POSITIVE;
-            else
-                return Sentiment.NEGATIVE;
-        }
-
-
+    public InferenceService(AiModel aiModel) throws OrtException, IOException {
+        this.env = OrtEnvironment.getEnvironment();
+        this.session = env.createSession(aiModel.model(), new OrtSession.SessionOptions());
+        this.tokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.tokens()), Map.of());
     }
 
-        private float[] softmax(float[] logits) {
-            float maxLogit = logits[0];
-            float sumExps = 0.0f;
+    /** Single-text, latency-optimized path (no batchEncode/streams). */
+    public Sentiment execute(String text) throws OrtException {
+        Encoding enc = tokenizer.encode(text);
 
-            // Find the maximum logit for numerical stability
-            for (float logit : logits) {
-                if (logit > maxLogit) {
-                    maxLogit = logit;
-                }
-            }
+        long[][] inputIds = { enc.getIds() };
+        long[][] attentionMask = { enc.getAttentionMask() };
 
-            // Compute exponentials and sum
-            float[] exps = new float[logits.length];
-            for (int i = 0; i < logits.length; i++) {
-                exps[i] = (float) Math.exp(logits[i] - maxLogit);
-                sumExps += exps[i];
-            }
+        try (OnnxTensor idsTensor = OnnxTensor.createTensor(env, inputIds);
+             OnnxTensor maskTensor = OnnxTensor.createTensor(env, attentionMask);
+             OrtSession.Result result = session.run(Map.of(
+                     INPUT_IDS, idsTensor,
+                     ATTENTION_MASK, maskTensor
+             ))) {
 
-            // Normalize to get probabilities
-            float[] softmax = new float[logits.length];
-            for (int i = 0; i < logits.length; i++) {
-                softmax[i] = exps[i] / sumExps;
-            }
-
-            return softmax;
+            float[] logits = ((float[][]) result.get(0).getValue())[0]; // [neg, pos]
+            return toSentiment(logits[0], logits[1]);
         }
+    }
 
+//    /** Multi-text, throughput-optimized path (batchEncode + one ONNX call). */
+//    public List<Sentiment> execute(List<String> texts) throws OrtException {
+//        if (texts == null || texts.isEmpty()) {
+//            return List.of();
+//        }
+//
+//        Encoding[] encodings = tokenizer.batchEncode(texts.toArray(String[]::new));
+//
+//        long[][] inputIds = Arrays.stream(encodings)
+//                .map(Encoding::getIds)
+//                .toArray(long[][]::new);
+//
+//        long[][] attentionMask = Arrays.stream(encodings)
+//                .map(Encoding::getAttentionMask)
+//                .toArray(long[][]::new);
+//
+//        try (OnnxTensor idsTensor = OnnxTensor.createTensor(env, inputIds);
+//             OnnxTensor maskTensor = OnnxTensor.createTensor(env, attentionMask);
+//             OrtSession.Result result = session.run(Map.of(
+//                     INPUT_IDS, idsTensor,
+//                     ATTENTION_MASK, maskTensor
+//             ))) {
+//
+//            float[][] logitsBatch = (float[][]) result.get(0).getValue(); // [batch, 2]
+//            return Arrays.stream(logitsBatch)
+//                    .map(row -> toSentiment(row[0], row[1]))
+//                    .toList();
+//        }
+//    }
+
+    private Sentiment toSentiment(float negLogit, float posLogit) {
+        return posLogit >= negLogit
+                ? Sentiment.POSITIVE
+                : Sentiment.NEGATIVE;
+    }
 }
