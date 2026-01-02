@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "ai.model.path",
+      "type": "java.lang.String",
+      "description": "Path to the ONNX model file used by OnnxRuntimeConfig."
+    }
+  ]
+}
+
