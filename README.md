@@ -49,7 +49,56 @@
 ## Download model
 
 ```shell
-./deployments/local/model/download-model.sh
+./deployments/local/loader/download-loader.sh
+```
+
+## Start GemFire
+
+GemFire Regions are comparable to DB tables
+Can use a trigger on a Region to pull changes to an uploaded AI Model
+GemFire will ensure that the app has the latest version of the model when the app starts up:
+- App starts and uses Spring Data Gemfire repository to get the model by name (e.g. SentimentModel) from a Models Region within Gemfire with Key=Sentiment and Value=<the value of the tokenizer of the Model>.
+- App reads this one time
+- Need a signal to repull or push model when the model is modified
+- Service needs a way to provide model in constructor and also a way to update the model
+
+
+Start Gemfire on Docker
+
+```shell
+./deployments/local/docker/start.sh
+```
+
+## Start Application
+
+Start the application
+
+```shell
+./mvnw spring-boot:run
+```
+
+To verify that the loader module loaded the model into GemFire, you can run the `gfsh` CLI from within the `gf-locater` Docker container.
+
+```shell
+docker exec -it gf-locator gfsh
+```
+
+Connect to cluster where 10334 is the locator port
+
+```gfsh
+connect --locator=127.0.0.1[10334]
+list regions
+query --query="select * from /AiModel.keys"
+```
+
+To verify that the engine module has pulled the model from GemFire, look for the following line in the application log file:
+```txt
+Executing onnx inference service using text: This is just a text for started to initialize the loader. This will failed is the loader is not loaded in GemFire
+```
+
+Or you can send any string to the model to evaluate the sentiment:
+```shell
+open http://localhost:8080  # Find and execute the checkSentiment endpoint
 ```
 
 ## Run tests
