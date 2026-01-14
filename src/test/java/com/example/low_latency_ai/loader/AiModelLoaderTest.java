@@ -33,9 +33,8 @@ class AiModelLoaderTest {
     @SneakyThrows
     @Test
     void given_gemfire_connection_when_run_then_load_AiModel() {
-        String[] args = {};
 
-        subject.run(args);
+        subject.initialize();
 
         verify(gemfireTemplate).put(any(),any());
 

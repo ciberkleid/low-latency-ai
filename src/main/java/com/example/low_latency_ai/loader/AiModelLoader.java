@@ -1,16 +1,17 @@
 package com.example.low_latency_ai.loader;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.data.gemfire.GemfireTemplate;
+import org.springframework.modulith.ApplicationModuleInitializer;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 
 @Component
-@Order(1)
-class AiModelLoader implements CommandLineRunner {
+class AiModelLoader implements ApplicationModuleInitializer {
 
     private final GemfireTemplate gemfireTemplate;
     private final String modelKey;
@@ -21,10 +22,9 @@ class AiModelLoader implements CommandLineRunner {
     AiModelLoader(GemfireTemplate gemfireTemplate,
                   @Value("${ai.loader.key:sentiment}")
                   String modelKey,
-//                  @Value("${/Users/ciberkleid/workspace/devnexus/low-latency-ai/src/main/resources/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english/model.onnx}")
-                  @Value("classpath:/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english/model.onnx")
+                  @Value("${ai.loader.model:classpath:/models/model.onnx}")
                   Resource modelResource,
-                  @Value("classpath:/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english/tokenizer.json")
+                  @Value("${ai.loader.tokenizer:classpath:/models/tokenizer.json}")
                   Resource tokenizerResource) {
         this.gemfireTemplate = gemfireTemplate;
         this.modelKey = modelKey;
@@ -34,8 +34,13 @@ class AiModelLoader implements CommandLineRunner {
 
 
     @Override
-    public void run(String... args) throws Exception {
-        gemfireTemplate.put(modelKey, AiModel.builder().model(modelResource.getContentAsByteArray())
-                .tokens(tokenizerResource.getContentAsByteArray()).build());
+    public void initialize()  {
+
+        try {
+            gemfireTemplate.put(modelKey, AiModel.builder().model(modelResource.getContentAsByteArray())
+                    .tokens(tokenizerResource.getContentAsByteArray()).build());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

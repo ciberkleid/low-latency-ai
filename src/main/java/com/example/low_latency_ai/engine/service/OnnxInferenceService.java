@@ -6,8 +6,8 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import com.example.low_latency_ai.loader.AiModel;
 import com.example.low_latency_ai.engine.domains.Sentiment;
+import com.example.low_latency_ai.loader.AiModel;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.geode.cache.EntryEvent;
@@ -15,6 +15,7 @@ import org.springframework.geode.cache.AbstractCommonEventProcessingCacheListene
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -32,7 +33,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
         this.aiModelSupplier = aiModelSupplier;
     }
 
-    private void setupSessionAndTokenizer() throws IOException {
+    private void setupSessionAndTokenizer() {
         try {
             this.env = OrtEnvironment.getEnvironment();
             var aiModel = this.aiModelSupplier.get();
@@ -40,13 +41,15 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
             this.session = env.createSession(aiModel.model(), new OrtSession.SessionOptions());
             this.tokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.tokens()), Map.of());
         } catch (OrtException e) {
-            throw new IOException(e);
+            throw new UncheckedIOException(new IOException(e));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
     /** Single-text, latency-optimized path (no batchEncode/streams). */
     @Override
-    public Sentiment execute(String text) throws OrtException, IOException {
+    public Sentiment execute(String text) {
 
         log.info("Executing onnx inference service using text: {}",text);
         if(this.tokenizer == null) {
@@ -69,12 +72,14 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
 
             log.info("Sentiments results: {}", results);
             return results;
+        } catch (OrtException e) {
+            throw new UncheckedIOException(new IOException(e));
         }
     }
 
     @SneakyThrows
     @Override
-    public  void processEntryEvent(EntryEvent<String, AiModel> event, AbstractCommonEventProcessingCacheListener.EntryEventType eventType) {
+    protected void processEntryEvent(EntryEvent<String, AiModel> event, AbstractCommonEventProcessingCacheListener.EntryEventType eventType) {
         if(AbstractCommonEventProcessingCacheListener.EntryEventType.DESTROY.equals(eventType) || AbstractCommonEventProcessingCacheListener.EntryEventType.INVALIDATE.equals(eventType))
             return;
 
@@ -93,7 +98,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
         this.setupSessionAndTokenizer();
     }
 
-    public HuggingFaceTokenizer getTokenizer() {
+    HuggingFaceTokenizer getTokenizer() {
         return this.tokenizer;
     }
 

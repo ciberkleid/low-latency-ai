@@ -4,11 +4,10 @@ import ai.onnxruntime.OrtException;
 import com.example.low_latency_ai.engine.service.OnnxInferenceService;
 import org.apache.geode.cache.client.ClientCache;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.data.gemfire.GemfireTemplate;
+import org.springframework.modulith.ApplicationModuleInitializer;
 
 import java.io.IOException;
 
@@ -25,9 +24,9 @@ class ServiceConfig {
     }
 
     @Bean
-    @Order(2)
-    CommandLineRunner setupService(OnnxInferenceService service)
+    ApplicationModuleInitializer setupService(OnnxInferenceService service)
     {
-        return args -> service.execute("This is just a text for started to initialize the loader. This will failed is the loader is not loaded in GemFire");
+        // Call service to ensure model is downloaded from GemFire when app is started
+        return () -> service.execute("Making sure model is available in GemFire and pulled by engine module during startup.");
     }
 }
