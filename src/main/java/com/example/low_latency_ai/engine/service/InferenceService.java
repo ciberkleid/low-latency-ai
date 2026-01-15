@@ -6,7 +6,7 @@ import com.example.low_latency_ai.engine.domains.Sentiment;
 import java.io.IOException;
 
 public interface InferenceService {
-    Sentiment execute(String text) throws Exception;
+    Sentiment execute(String text);
 
-    void updateModel(AiModel aiModel) throws IOException;
+    void updateModel(AiModel aiModel);
 }

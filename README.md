@@ -96,10 +96,25 @@ To verify that the engine module has pulled the model from GemFire, look for the
 Executing onnx inference service using text: This is just a text for started to initialize the loader. This will failed is the loader is not loaded in GemFire
 ```
 
+To verify that the engine cached the prompt and inference result in GemFire, run:
+```gfsh
+query --query="select key,value from /SentimentResults.entries"
+```
+
 Or you can send any string to the model to evaluate the sentiment:
 ```shell
 open http://localhost:8080  # Find and execute the checkSentiment endpoint
 ```
+
+To verify that an initial prompt uses the model and subsequent requests with the same prompt return the cached result, check the log file. It will look something like this, showing an inference operation and a cache PutOp the first time, and only a cache GetOp on subsequent requests:
+```txt
+2026-01-15T10:38:54.959-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-5] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
+2026-01-15T10:38:54.966-05:00  INFO 42167 --- [low-latency-ai] [nio-8080-exec-5] c.e.l.e.service.OnnxInferenceService     : Executing onnx inference service using text: "Spring is awesome"
+2026-01-15T10:38:54.983-05:00  INFO 42167 --- [low-latency-ai] [nio-8080-exec-5] c.e.l.e.service.OnnxInferenceService     : Sentiments results: POSITIVE
+2026-01-15T10:38:54.983-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-5] o.a.g.cache.client.internal.AbstractOp   : PutOpImpl constructing message for EventID[id=39 bytes;threadID=434440;sequenceID=0]; operation=UPDATE
+2026-01-15T10:38:55.778-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-6] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
+```
+
 
 ## Run tests
 

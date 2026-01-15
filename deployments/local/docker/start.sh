@@ -23,3 +23,7 @@ sleep 5
 # Setup GemFire Account Region
 REGION_NAME=AiModel
 docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"
+
+# Region to save sentiment
+REGION_NAME=SentimentResults
+docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"

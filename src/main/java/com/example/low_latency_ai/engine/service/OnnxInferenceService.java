@@ -11,6 +11,7 @@ import com.example.low_latency_ai.loader.AiModel;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.geode.cache.EntryEvent;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.geode.cache.AbstractCommonEventProcessingCacheListener;
 
 import java.io.ByteArrayInputStream;
@@ -29,7 +30,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
     private OrtSession session;
     private HuggingFaceTokenizer tokenizer;
 
-    public OnnxInferenceService(Supplier<AiModel >aiModelSupplier) throws OrtException, IOException {
+    public OnnxInferenceService(Supplier<AiModel >aiModelSupplier){
         this.aiModelSupplier = aiModelSupplier;
     }
 
@@ -49,6 +50,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
 
     /** Single-text, latency-optimized path (no batchEncode/streams). */
     @Override
+    @Cacheable("SentimentResults")
     public Sentiment execute(String text) {
 
         log.info("Executing onnx inference service using text: {}",text);
@@ -93,7 +95,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
     }
 
     @Override
-    public void updateModel(AiModel aiModel) throws IOException {
+    public void updateModel(AiModel aiModel) {
         this.aiModelSupplier = () -> aiModel;
         this.setupSessionAndTokenizer();
     }

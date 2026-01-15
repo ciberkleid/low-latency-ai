@@ -7,12 +7,14 @@ import org.apache.geode.cache.client.ClientCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.gemfire.client.ClientRegionFactoryBean;
 import org.springframework.data.gemfire.config.annotation.ClientCacheApplication;
+import org.springframework.data.gemfire.config.annotation.EnableCachingDefinedRegions;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 @Component
 @ClientCacheApplication(subscriptionEnabled = true)
+@EnableCachingDefinedRegions
 class GemFireConfig {
 
     @Bean
