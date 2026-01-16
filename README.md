@@ -115,9 +115,12 @@ To verify that an initial prompt uses the model and subsequent requests with the
 2026-01-15T10:38:55.778-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-6] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
 ```
 
-To verify that local model updates trigger app to update the model in GemFire, change the local model or tokenizer files (adding an empty line to the tokenizer.json file is sufficient). Within 5 seconds, you should see the following in the log file:
+To verify that local model updates trigger the loader module to update the model in GemFire and the engine module to update the model in memory, change the local model or tokenizer files (adding an empty line to the tokenizer.json file is sufficient). Within 5 seconds, you should see the following in the log file:
 ```txt
-2026-01-16T09:48:41.044-05:00  INFO 65170 --- [low-latency-ai] [   scheduling-1] c.e.l.loader.AiModelResourceMonitor      : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
+2026-01-16T11:51:33.380-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.loader.AiModelResourceMonitor      : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
+2026-01-16T11:51:33.542-05:00 DEBUG 96553 --- [low-latency-ai] [   scheduling-1] o.a.g.cache.client.internal.AbstractOp   : PutOpImpl constructing message for EventID[id=39 bytes;threadID=283533;sequenceID=0]; operation=UPDATE
+2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Update event detected: Received new model from GemFire
+2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Updating local Onnx session and tokenizer with new model.
 ```
 
 
@@ -125,3 +128,8 @@ To verify that local model updates trigger app to update the model in GemFire, c
 
 Execute [integration tests](src/test/java/com/example/low_latency_ai/service/InferenceServiceTest.java)
 These tests verify Spring app hosting model, not yet interaction with GemFire.
+
+# TODO
+1. Invalidate locally cached model when model on GemFire is updated
+3. invalidate cache region or recreate cache region when model changes ?
+4. Implement architecture B

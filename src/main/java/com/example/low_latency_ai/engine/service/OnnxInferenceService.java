@@ -82,6 +82,7 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
     @SneakyThrows
     @Override
     protected void processEntryEvent(EntryEvent<String, AiModel> event, AbstractCommonEventProcessingCacheListener.EntryEventType eventType) {
+        log.info("Update event detected: Received new model from GemFire.");
         if(AbstractCommonEventProcessingCacheListener.EntryEventType.DESTROY.equals(eventType) || AbstractCommonEventProcessingCacheListener.EntryEventType.INVALIDATE.equals(eventType))
             return;
 
@@ -96,8 +97,9 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
 
     @Override
     public void updateModel(AiModel aiModel) {
-        this.aiModelSupplier = () -> aiModel;
-        this.setupSessionAndTokenizer();
+        log.info("Updating local Onnx session and tokenizer with new model.");
+        this.aiModelSupplier = () -> aiModel; // Update Supplier with new model
+        this.setupSessionAndTokenizer(); // Recreate session and tokenizer using updated model
     }
 
     HuggingFaceTokenizer getTokenizer() {

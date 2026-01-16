@@ -22,9 +22,9 @@ class AiModelLoader implements ApplicationModuleInitializer {
     AiModelLoader(GemfireTemplate gemfireTemplate,
                   @Value("${ai.loader.key:sentiment}")
                   String modelKey,
-                  @Value("${ai.loader.model:classpath:/models/model.onnx}")
+                  @Value("${ai.loader.model:file:./models/model.onnx}")
                   Resource modelResource,
-                  @Value("${ai.loader.tokenizer:classpath:/models/tokenizer.json}")
+                  @Value("${ai.loader.tokenizer:file:./models/tokenizer.json}")
                   Resource tokenizerResource) {
         this.gemfireTemplate = gemfireTemplate;
         this.modelKey = modelKey;

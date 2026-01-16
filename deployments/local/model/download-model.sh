@@ -12,7 +12,7 @@
 # This loader outputs two logits: [negative, positive].
 # It always predicts positive or negative (SST-2 has no neutral class).
 
-DEST=src/main/resources/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english
+DEST=models/distilbert/distilbert-base-uncased-finetuned-sst-2-english
 
 rm -rf $DEST
 mkdir -p $DEST
