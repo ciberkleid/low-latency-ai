@@ -115,6 +115,11 @@ To verify that an initial prompt uses the model and subsequent requests with the
 2026-01-15T10:38:55.778-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-6] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
 ```
 
+To verify that local model updates trigger app to update the model in GemFire, change the local model or tokenizer files (adding an empty line to the tokenizer.json file is sufficient). Within 5 seconds, you should see the following in the log file:
+```txt
+2026-01-16T09:48:41.044-05:00  INFO 65170 --- [low-latency-ai] [   scheduling-1] c.e.l.loader.AiModelResourceMonitor      : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
+```
+
 
 ## Run tests
 
