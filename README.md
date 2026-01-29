@@ -1,89 +1,187 @@
 # Low Latency AI
 
-## Option A: Model distribution (edge inference)
+# Low Latency AI
+
+This repository demonstrates **low-latency AI inference with GemFire**, supporting both **edge inference** (models distributed to applications for local execution, suited to inference without external data dependencies) and **data-local inference** (models, data, and execution colocated in GemFire, suited to inference that depends on shared data). In both cases, GemFire provides a shared inference cache to avoid repeated computation and further improve latency.
+
+The demo uses a sentiment-analysis [ONNX](https://onnx.ai) model to show how GemFire coordinates model distribution, data locality, caching, and observability for inference workloads.
+
+---
+
+## Edge Inference (Model Distribution)
+
+### Use Case
+Evaluate sentiment for a single user-submitted string:
+
+```txt
+"I love Spring" → POSITIVE
+```
 
 ### Description
-- Standalone Spring application runs inference logic in its JVM and hosts the inference model
-- The model has no external data dependency
-- GemFire coordinates model distribution, caching, and observability
+- A standalone Spring application pulls the inference model from GemFire and hosts it in memory, running inference logic in its JVM
+- The inference model has no external data dependencies
+- GemFire stores and distributes the model and coordinates caching and observability
+
 
 ### Flow
-- **Spring app → GemFire:** sends inference inputs
-- **GemFire:** checks cache
-- **Cache miss**
-    - **GemFire → Spring app:** pushes model
-    - **Spring app:** runs inference using the model colocated in the JVM
-    - **GemFire:** caches and observes inputs/output
-- **Cache hit**
-    - **GemFire → Spring app:** returns cached inference result
+- **Spring app → GemFire:** submits inference input
+- **GemFire:** checks the inference cache
+
+**Cache miss**
+- **GemFire → Spring app:** provides the model (if not already loaded)
+- **Spring app:** runs inference in-JVM using the colocated model
+- **GemFire:** caches and observes inputs and outputs
+
+**Cache hit**
+- **GemFire → Spring app:** returns the cached inference result
+
+### Components
+- **loader module**: one-time utility that uploads the ONNX model and tokenizer to GemFire
+- **engine module**: runtime component used by application instances to download the model from GemFire into memory, serve inference, and cache results in the `SentimentResults` region
+
+### Model Update Propagation Flow
+
+GemFire Regions are comparable to database tables: they act as the system of record for models and tokenizers, and—like database triggers—can emit change events when those records are updated.
+ The Spring application uses these change events to refresh the in-memory model.
+
+#### Initial Model Load (Startup)
+
+- **Loader module → GemFire:** a one-time or administrative process uploads the ONNX model and tokenizer to the `Models` region
+- **Engine module → GemFire:** on startup, each engine instance uses a Spring Data GemFire repository to fetch the model by name (for example, key `Sentiment` from the `Models` region)
+- **GemFire:** returns the current model and tokenizer stored in the region
+- **Engine module:** loads the model into memory and initializes the inference service
+- **Engine module:** performs this initial model load once per application instance
+
+#### Model Update Propagation (Runtime)
+
+- **Loader module / operator → GemFire:** uploads an updated model or tokenizer to the `Models` region
+- **GemFire:** updates the region entry and emits a change event, analogous to a database trigger firing on update
+- **Engine module:** receives the region change event via a listener or trigger
+- **Engine module:** responds to the event by reloading the updated model from GemFire
+- **Engine module:** replaces or refreshes the in-memory model used for inference
+- **Subsequent inference requests:** are served using the updated model
+
+#### Notes and Constraints
+
+- GemFire propagates model update notifications through region change events
+- The engine module is responsible for deciding when and how to reload the model in response to change events. In this demo, the engine service supports both constructor-based model initialization (startup) and runtime model replacement (updates).
+- This explicit reload mechanism avoids hidden side effects and keeps model lifecycle management under application control
+DETE THIS
+
+### Model Update Propagation Flow
+
+This flow describes how inference models are initially loaded at startup and how subsequent model updates are propagated to running application instances.
+
+GemFire Regions are comparable to database tables: they act as the system of record for models and tokenizers and—like database triggers—emit change events when those records are updated. Spring applications consume these events to explicitly manage in-memory model lifecycles.
+
+#### Initial Model Load (Startup)
+
+- **Loader module → GemFire:** uploads the initial version of the ONNX model and tokenizer to the `Models` region
+- **Engine module → GemFire:** on startup, each engine instance uses a Spring Data GemFire repository to fetch the model by name (for example, key `Sentiment` from the `Models` region)
+- **GemFire:** returns the current model and tokenizer stored in the region
+- **Engine module:** loads the model into memory and initializes the inference service
+
+#### Model Update Propagation (Runtime)
+
+- **Loader module:** polls a local directory for changes to the model or tokenizer files
+- **Loader module → GemFire:** when a file change is detected, uploads the updated model or tokenizer to the `Models` region
+- **GemFire:** updates the region entry and emits a region change event
+- **Engine module:** receives the region event indicating that the model has changed
+- **Engine module:** explicitly reloads the updated model from GemFire
+- **Engine module:** replaces or refreshes the in-memory model used for inference
+- **Subsequent inference requests:** use the updated model
 
 ### Benefits
-- Centralized model updates
-- Low-latency, in-JVM inference
-- Inference caching avoids repeated execution
-- Observability of inputs and outputs via GemFire
+- Centralized model distribution and updates
+- Low-latency, in-process inference
+- Shared inference cache across application instances
+- Observability of inference inputs and outputs via GemFire
 
-## Option B: Model hosting (data-local inference)
+---
+
+## Data-Local Inference (Model, Data, and Execution Colocation)
+
+### Use Case
+- Submit a product ID
+- Query the `ProductReviews` region for comments
+- Evaluate sentiment per comment (using the same ONNX model uploaded by the Spring app **loader**)
+- Return the percentage of positive reviews
+- Cache per-comment results in the shared `SentimentResults` region
 
 ### Description
 - A lightweight Spring application runs outside GemFire
-- A GemFire function runs the data-intensive Java inference logic
-- GemFire hosts the inference model and related data
-- Best for data-dependent, data-intensive models
+- A GemFire function runs the data-dependent Java inference logic
+- GemFire hosts the inference model and the related data
+- Best suited for data-dependent or data-intensive inference
 
 ### Flow
-- **Spring app → GemFire:** invokes function with inference inputs
-- **GemFire:** checks cache
-- **Cache miss**
-    - **GemFire Function:** runs inference using model and data colocated in GemFire
-    - **GemFire:** caches and observes inputs/output
-- **Cache hit**
-    - **GemFire → Spring app:** returns cached inference result
+- **Spring app → GemFire:** invokes a function with inference inputs
+- **GemFire:** checks the inference cache
+
+**Cache miss**
+- **GemFire function:** runs inference using model and data colocated in GemFire
+- **GemFire:** caches and observes inputs and outputs
+
+**Cache hit**
+- **GemFire → Spring app:** returns the cached inference result
 
 ### Benefits
-- Data-local inference avoids data movement and reduces latency
-- Distributed, parallel execution (model and data are distributed across GemFire servers)
-- Inference caching avoids redundant computation
-- Observability of inputs and outputs via GemFire
+- Data-local execution avoids data movement
+- Distributed, parallel inference (model and data are distributed across GemFire servers)
+- Shared inference cache avoids redundant computation
+- Observability of inference inputs and outputs via GemFire
 
-## Download model
+---
 
-```shell
-./deployments/local/loader/download-loader.sh
-```
+## Inference Caching (Shared Capability)
 
-## Start GemFire
+Both inference architectures use GemFire as a shared, low-latency cache for inference inputs and outputs.
 
-GemFire Regions are comparable to DB tables
-Can use a trigger on a Region to pull changes to an uploaded AI Model
-GemFire will ensure that the app has the latest version of the model when the app starts up:
-- App starts and uses Spring Data Gemfire repository to get the model by name (e.g. SentimentModel) from a Models Region within Gemfire with Key=Sentiment and Value=<the value of the tokenizer of the Model>.
-- App reads this one time
-- Need a signal to repull or push model when the model is modified
-- Service needs a way to provide model in constructor and also a way to update the model
+- Cache hits avoid repeated inference execution
+- Cached results are shared across application instances and inference modes
+- Inputs and outputs are observable through GemFire tooling
 
+---
 
-Start Gemfire on Docker
+## Running the Demo
+
+### Download the Model
 
 ```shell
-./deployments/local/docker/start.sh
+./ops/local/model/download-model.sh
 ```
 
-## Start Application
+---
 
-Start the application
+### Start GemFire
+
+Start GemFire using Docker:
+
+```shell
+./ops/local/docker/start-gemfire.sh
+```
+
+---
+
+### Start the Application
 
 ```shell
 ./mvnw spring-boot:run
 ```
 
-To verify that the loader module loaded the model into GemFire, you can run the `gfsh` CLI from within the `gf-locater` Docker container.
+---
+
+## Verifying the Demo
+
+### Verify Model Loaded into GemFire
+
+Run `gfsh` inside the locator container:
 
 ```shell
 docker exec -it gf-locator gfsh
 ```
 
-Connect to cluster where 10334 is the locator port
+Connect to the cluster:
 
 ```gfsh
 connect --locator=127.0.0.1[10334]
@@ -91,22 +189,37 @@ list regions
 query --query="select * from /AiModel.keys"
 ```
 
-To verify that the engine module has pulled the model from GemFire, look for the following line in the application log file:
+---
+
+### Verify Model Loaded into the Application
+
+Look for the following log entry:
+
 ```txt
 Executing onnx inference service using text: This is just a text for started to initialize the loader. This will failed is the loader is not loaded in GemFire
 ```
 
-To verify that the engine cached the prompt and inference result in GemFire, run:
+---
+
+### Verify Inference Caching
+
+Query cached inference results:
+
 ```gfsh
 query --query="select key,value from /SentimentResults.entries"
 ```
 
-Or you can send any string to the model to evaluate the sentiment:
+Or invoke the sentiment endpoint:
+
 ```shell
-open http://localhost:8080  # Find and execute the checkSentiment endpoint
+open http://localhost:8080
 ```
 
-To verify that an initial prompt uses the model and subsequent requests with the same prompt return the cached result, check the log file. It will look something like this, showing an inference operation and a cache PutOp the first time, and only a cache GetOp on subsequent requests:
+On the first request, logs will show inference execution and a cache `PutOp`.
+Subsequent requests with the same input will show only a cache `GetOp`.
+
+Example log output:
+
 ```txt
 2026-01-15T10:38:54.959-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-5] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
 2026-01-15T10:38:54.966-05:00  INFO 42167 --- [low-latency-ai] [nio-8080-exec-5] c.e.l.e.service.OnnxInferenceService     : Executing onnx inference service using text: "Spring is awesome"
@@ -115,7 +228,13 @@ To verify that an initial prompt uses the model and subsequent requests with the
 2026-01-15T10:38:55.778-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-6] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
 ```
 
-To verify that local model updates trigger the loader module to update the model in GemFire and the engine module to update the model in memory, change the local model or tokenizer files (adding an empty line to the tokenizer.json file is sufficient). Within 5 seconds, you should see the following in the log file:
+---
+
+### Verify Model Updates
+
+Modify the local model or tokenizer (adding an empty line to `tokenizer.json` is sufficient).
+Within a few seconds, you should see:
+
 ```txt
 2026-01-16T11:51:33.380-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.loader.AiModelResourceMonitor      : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
 2026-01-16T11:51:33.542-05:00 DEBUG 96553 --- [low-latency-ai] [   scheduling-1] o.a.g.cache.client.internal.AbstractOp   : PutOpImpl constructing message for EventID[id=39 bytes;threadID=283533;sequenceID=0]; operation=UPDATE
@@ -123,13 +242,22 @@ To verify that local model updates trigger the loader module to update the model
 2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Updating local Onnx session and tokenizer with new model.
 ```
 
+This confirms that local model changes propagate through GemFire and update in-memory inference sessions.
 
-## Run tests
+---
 
-Execute [integration tests](src/test/java/com/example/low_latency_ai/service/InferenceServiceTest.java)
-These tests verify Spring app hosting model, not yet interaction with GemFire.
+## Tests
 
-# TODO
-1. Invalidate locally cached model when model on GemFire is updated
-3. invalidate cache region or recreate cache region when model changes ?
-4. Implement architecture B
+Run integration tests:
+
+```shell
+./mvnw test
+```
+
+---
+
+## TODO
+
+1. Invalidate locally cached models when the model in GemFire is updated
+2. Invalidate or version inference cache entries on model changes
+3. Expand data-local inference test coverage
