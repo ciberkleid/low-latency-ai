@@ -8,10 +8,11 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.example.low_latency_ai.gemfire.functions.domain.AiModel;
 import com.example.low_latency_ai.gemfire.functions.domain.Sentiment;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.Region;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,8 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-@Slf4j
-class OnnxPositiveSentimentCounter implements  PositiveSentimentCounter {
+public class OnnxPositiveSentimentCounter implements  PositiveSentimentCounter {
     private static final String INPUT_IDS = "input_ids";
     private static final String ATTENTION_MASK = "attention_mask";
     private static final String SENTIMENT_REGION = "SentimentResults";
@@ -32,6 +32,7 @@ class OnnxPositiveSentimentCounter implements  PositiveSentimentCounter {
     private OrtEnvironment env;
     private OrtSession session;
     private HuggingFaceTokenizer tokenizer;
+    private Logger log = LogManager.getLogger(OnnxPositiveSentimentCounter.class);
 
     public OnnxPositiveSentimentCounter(Supplier<AiModel> aiModelSupplier){
         this.aiModelSupplier = aiModelSupplier;

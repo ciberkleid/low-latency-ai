@@ -1,5 +1,6 @@
-package com.example.low_latency_ai.loader;
+package com.example.low_latency_ai.model;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.data.gemfire.GemfireTemplate;
@@ -19,14 +20,14 @@ class AiModelLoader implements ApplicationModuleInitializer {
     private final Resource modelResource;
     private final Resource tokenizerResource;
 
-    AiModelLoader(GemfireTemplate gemfireTemplate,
-                  @Value("${ai.loader.key:sentiment}")
+    AiModelLoader(@Qualifier("aiModelTemplate") GemfireTemplate aiModelTemplate,
+                  @Value("${ai.model.key:sentiment}")
                   String modelKey,
-                  @Value("${ai.loader.model:file:./models/model.onnx}")
+                  @Value("${ai.model.model:file:./models/model.onnx}")
                   Resource modelResource,
-                  @Value("${ai.loader.tokenizer:file:./models/tokenizer.json}")
+                  @Value("${ai.model.tokenizer:file:./models/tokenizer.json}")
                   Resource tokenizerResource) {
-        this.gemfireTemplate = gemfireTemplate;
+        this.gemfireTemplate = aiModelTemplate;
         this.modelKey = modelKey;
         this.modelResource = modelResource;
         this.tokenizerResource = tokenizerResource;

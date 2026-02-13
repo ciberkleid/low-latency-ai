@@ -4,6 +4,7 @@ import ai.onnxruntime.OrtException;
 import com.example.low_latency_ai.engine.service.InferenceService;
 import com.example.low_latency_ai.engine.service.OnnxInferenceService;
 import org.apache.geode.cache.client.ClientCache;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,12 +17,12 @@ import java.io.IOException;
 class InferenceServiceConfig {
 
 
-    @Value("${ai.loader.key:sentiment}")
+    @Value("${ai.model.key:sentiment}")
     private String modelKey;
 
     @Bean
-    InferenceService onnxInferenceService(ClientCache clientCache, GemfireTemplate regionTemplate) throws IOException, OrtException {
-        return new OnnxInferenceService(() -> regionTemplate.get(modelKey));
+    InferenceService onnxInferenceService(ClientCache clientCache, @Qualifier("aiModelTemplate") GemfireTemplate aiModelTemplate) throws IOException, OrtException {
+        return new OnnxInferenceService(() -> aiModelTemplate.get(modelKey));
     }
 
     @Bean

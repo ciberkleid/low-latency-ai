@@ -1,7 +1,8 @@
-package com.example.low_latency_ai.loader;
+package com.example.low_latency_ai.model;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.data.gemfire.GemfireTemplate;
@@ -27,11 +28,11 @@ class AiModelResourceMonitor {
     private volatile Long lastModelModified;
     private volatile Long lastTokenizerModified;
 
-    AiModelResourceMonitor(GemfireTemplate gemfireTemplate,
-                           @Value("${ai.loader.key:sentiment}") String modelKey,
-                           @Value("${ai.loader.model:classpath:/models/model.onnx}") Resource modelResource,
-                           @Value("${ai.loader.tokenizer:classpath:/models/tokenizer.json}") Resource tokenizerResource) {
-        this.gemfireTemplate = gemfireTemplate;
+    AiModelResourceMonitor(@Qualifier("aiModelTemplate") GemfireTemplate aiModelTemplate,
+                           @Value("${ai.model.key:sentiment}") String modelKey,
+                           @Value("${ai.model.model:classpath:/models/model.onnx}") Resource modelResource,
+                           @Value("${ai.model.tokenizer:classpath:/models/tokenizer.json}") Resource tokenizerResource) {
+        this.gemfireTemplate = aiModelTemplate;
         this.modelKey = modelKey;
         this.modelResource = modelResource;
         this.tokenizerResource = tokenizerResource;
@@ -45,9 +46,9 @@ class AiModelResourceMonitor {
 
     /**
      * Polls for changes on the configured resources.
-     * Interval is configurable via ai.loader.watch-interval (milliseconds).
+     * Interval is configurable via ai.model.watch-interval (milliseconds).
      */
-    @Scheduled(fixedDelayString = "${ai.loader.watch-interval:5000}")
+    @Scheduled(fixedDelayString = "${ai.model.watch-interval:5000}")
     void checkForUpdates() {
         Long currentModelModified = safeLastModified(modelResource);
         Long currentTokenizerModified = safeLastModified(tokenizerResource);

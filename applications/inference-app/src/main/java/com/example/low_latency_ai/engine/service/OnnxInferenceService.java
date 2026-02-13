@@ -7,7 +7,7 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.example.low_latency_ai.engine.domain.Sentiment;
-import com.example.low_latency_ai.loader.AiModel;
+import com.example.low_latency_ai.model.AiModel;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.geode.cache.EntryEvent;

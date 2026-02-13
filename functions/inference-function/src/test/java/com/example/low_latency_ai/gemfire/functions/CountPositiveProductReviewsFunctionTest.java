@@ -15,6 +15,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,6 +41,7 @@ class CountPositiveProductReviewsFunctionTest {
     private Query query;
 
     private CountPositiveProductReviewsFunction subject;
+    private String productId = "Spring";
 
     @BeforeEach
     void setUp() {
@@ -49,11 +51,11 @@ class CountPositiveProductReviewsFunctionTest {
     @Test
     void given_product_when_execute_then_return_positive_sentiment_count() throws FunctionDomainException, TypeMismatchException, QueryInvocationTargetException, NameResolutionException {
 
-        String[] productIdArg = {"Junit"};
         var listOfProductComments = List.of("I love Junit", "This is a lot of mocking");
         Long positiveCount = 1L;
 
-        when(rfc.getArguments()).thenReturn(productIdArg);
+        Set productIdArg = Set.of(productId);
+        when(rfc.getFilter()).thenReturn(productIdArg);
 
         when(rfc.getResultSender()).thenReturn(resultSender);
 
@@ -61,7 +63,7 @@ class CountPositiveProductReviewsFunctionTest {
         when(productReviewsRegion.getRegionService()).thenReturn(regionService);
         when(regionService.getQueryService()).thenReturn(queryService);
         when(queryService.newQuery(any())).thenReturn(query);
-        when(query.execute(any(RegionFunctionContext.class),anyString())).thenReturn(listOfProductComments);
+        when(query.execute(any(RegionFunctionContext.class),any())).thenReturn(listOfProductComments);
 
         when(positiveSentimentCounter.count(any())).thenReturn(positiveCount);
 

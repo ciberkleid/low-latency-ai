@@ -1,0 +1,29 @@
+
+docker network create gemfire --driver bridge
+
+
+# Run Locator
+docker run -d -e 'ACCEPT_TERMS=y' --rm --name gf-locator --network=gemfire -p 10334:10334 -p 1099:1099 -p 7070:7070 -p 7999:7999 -p 7777:7777 gemfire/gemfire-all:10.1 gfsh start locator --name=locator1 --jmx-manager-hostname-for-clients=127.0.0.1 --hostname-for-clients=127.0.0.1 --J=-Dgemfire.prometheus.metrics.emission=Default --J=-Dgemfire.prometheus.metrics.port=7777  --J=-Duser.timezone=America/New_York --J=-Dgemfire.prometheus.metrics.interval=15s --J=-Djava.rmi.server.hostname=127.0.0.1 --J=-Dgemfire.tcp-port=7999
+
+until docker exec -it  gf-locator  gfsh -e "connect --jmx-manager=gf-locator[1099]" >/dev/null 2>&1; do
+  echo "Waiting for locator to start..."
+  sleep 2
+done
+echo "Locator is up"
+
+
+# Configure PDX
+docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "configure pdx --read-serialized=false --disk-store"
+# Run Cache Server
+#docker run -d  -e 'ACCEPT_TERMS=y' --rm --name gf-server1 --network=gemfire -p 40404:40404 gemfire/gemfire-all:10.1 gfsh start server --name=server1 --locators=gf-locator\[10334\]
+docker run -d -e 'ACCEPT_TERMS=y' --rm --name gf-server1 --network=gemfire -p 40404:40404 -p 7080:7080 -p 7977:7977 gemfire/gemfire-all:10.1 gfsh start server --name=server1 --locators=gf-locator\[10334\] --hostname-for-clients=127.0.0.1 --start-rest-api=true --http-service-port=7080 --J=-Dgemfire.prometheus.metrics.emission=Default --J=-Dgemfire.prometheus.metrics.port=7977  --J=-Duser.timezone=America/New_York --J=-Dgemfire.prometheus.metrics.interval=15s
+
+sleep 5
+
+# Setup GemFire Account Region
+REGION_NAME=AiModel
+docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"
+
+# Region to save sentiment
+REGION_NAME=SentimentResults
+docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"

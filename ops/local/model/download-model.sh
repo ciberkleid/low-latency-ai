@@ -1,15 +1,15 @@
 # Model: distilbert-base-uncased-finetuned-sst-2-english
 #
-# A lightweight transformer loader for binary sentiment analysis in English.
+# A lightweight transformer model for binary sentiment analysis in English.
 #
 # - DistilBERT: a smaller, faster version of BERT created via knowledge distillation
-# - Base: standard DistilBERT loader size (6 transformer layers)
+# - Base: standard DistilBERT model size (6 transformer layers)
 # - Uncased: input text is lowercased before processing
 # - Fine-tuned on SST-2: trained specifically to classify sentiment
 # - English-only: trained and evaluated on English text
 #
 # Note:
-# This loader outputs two logits: [negative, positive].
+# This model outputs two logits: [negative, positive].
 # It always predicts positive or negative (SST-2 has no neutral class).
 
 DEST=models/distilbert/distilbert-base-uncased-finetuned-sst-2-english

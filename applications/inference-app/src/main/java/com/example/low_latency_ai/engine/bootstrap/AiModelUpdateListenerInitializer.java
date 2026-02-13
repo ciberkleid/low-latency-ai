@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.engine.bootstrap;
 
-import com.example.low_latency_ai.loader.AiModel;
+import com.example.low_latency_ai.model.AiModel;
 import org.apache.geode.cache.CacheListener;
 import org.apache.geode.cache.Region;
 import org.springframework.beans.factory.ObjectProvider;

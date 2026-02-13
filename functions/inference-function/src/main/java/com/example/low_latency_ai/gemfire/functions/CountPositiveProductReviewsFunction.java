@@ -1,30 +1,49 @@
 package com.example.low_latency_ai.gemfire.functions;
 
+import com.example.low_latency_ai.gemfire.functions.domain.AiModel;
 import com.example.low_latency_ai.gemfire.functions.domain.ProductReview;
+import com.example.low_latency_ai.gemfire.functions.sentiment.OnnxPositiveSentimentCounter;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
+import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.execute.Function;
 import org.apache.geode.cache.execute.FunctionContext;
 import org.apache.geode.cache.execute.FunctionException;
 import org.apache.geode.cache.execute.RegionFunctionContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 public class CountPositiveProductReviewsFunction implements Function<String[]> {
 
-
+    private static final String REGION_NM = "AiModel";
+    private static final String MODEL_KEY_NM = "sentiment";
     private String selectByProductReviewQuery = """
-            select comment from /ProductReviews where productId = $1
+            select review from /ProductReviews where productName = $1
             """;
     private final PositiveSentimentCounter positiveSentimentCounter;
+    private Logger logger = LogManager.getLogger(CountPositiveProductReviewsFunction.class);
 
+    // No args constructor is used by each GemFire server to initialize the function
+    // at time of deployment
+    public CountPositiveProductReviewsFunction(){
+        this(new OnnxPositiveSentimentCounter(() ->{
+            Region<String, AiModel> region = CacheFactory.getAnyInstance()
+                    .getRegion(REGION_NM);
+
+            return region.get(MODEL_KEY_NM);
+        }));
+    }
     public CountPositiveProductReviewsFunction(PositiveSentimentCounter positiveSentimentCounter) {
         this.positiveSentimentCounter = positiveSentimentCounter;
     }
 
     @Override
     public void execute(FunctionContext<String[]> functionContext) {
+
+        logger.info("Executing function");
         // Notes:
         // 1. Use FunctionContext<String[]> rather than FunctionContext<String> to
         //    facilitate testing from gfsh, as gfsh passes a String[] of arguments
@@ -35,14 +54,21 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
         Region<String, ProductReview> productReviewsRegion = rfc.getDataSet();
 
 
-        var productId = functionContext.getArguments()[0];
+        String[] productName = {(String) rfc.getFilter().iterator().next()};
+
+        logger.info("Product Name: {}",productName);
         try {
             var query = productReviewsRegion.getRegionService().getQueryService().newQuery(selectByProductReviewQuery);
 
+            logger.info("Query: {}",query);
+
             // TODO: This may require using a org.apache.geode.cache.query.Struct
             // Instead of a Collection of Strings
-            Collection<String> productReviews = (Collection)query.execute(rfc,productId);
+            Collection<String> productReviews = (Collection)query.execute(rfc,productName);
+
+            logger.info("Results: {}",productReviews.size());
             var count = positiveSentimentCounter.count(new ArrayList<String>(productReviews));
+            logger.info("count: {}",count);
 
             rfc.getResultSender().lastResult(count);
 
@@ -51,5 +77,11 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
             throw new FunctionException(e);
         }
 
+    }
+
+    // This determines the name of the function on GemFire
+    @Override
+    public String getId() {
+        return "countPositiveReviews";
     }
 }

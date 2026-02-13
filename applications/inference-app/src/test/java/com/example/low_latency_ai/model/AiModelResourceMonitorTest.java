@@ -1,4 +1,4 @@
-package com.example.low_latency_ai.loader;
+package com.example.low_latency_ai.model;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

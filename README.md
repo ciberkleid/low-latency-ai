@@ -1,10 +1,12 @@
-# Low Latency AI
+# Low Latency AI Inference
 
-# Low Latency AI
+This repository demonstrates low-latency AI inference with GemFire using two patterns: 
+- **Edge inference:** models distributed by GemFire to standalone applications for local execution, suited to inference without external data dependencies
+- **Data-local inference:** models, data, and execution colocated in GemFire, suited to inference that depends on stored data
 
-This repository demonstrates **low-latency AI inference with GemFire**, supporting both **edge inference** (models distributed to applications for local execution, suited to inference without external data dependencies) and **data-local inference** (models, data, and execution colocated in GemFire, suited to inference that depends on shared data). In both cases, GemFire provides a shared inference cache to avoid repeated computation and further improve latency.
+GemFire provides model storage/distribution, including region events to propagate model updates to running application instances. In the data-local pattern, GemFire provides region-based function execution so inference runs where the data resides. Finally, across both patterns, GemFire also serves as a shared inference-result cache to reduce repeated computation and improve response time.
 
-The demo uses a sentiment-analysis [ONNX](https://onnx.ai) model to show how GemFire coordinates model distribution, data locality, caching, and observability for inference workloads.
+The example model is a sentiment classifier in [ONNX](https://onnx.ai), an open, framework-neutral model format. In this project, inference is executed with [ONNX Runtime](https://onnxruntime.ai/) in both the GemFire function (data-local path) and the standalone application (edge path), allowing one exported model artifact to be reused across both; while other formats are possible, they typically introduce more framework-specific integration overhead in this JVM-based setup.
 
 ---
 
@@ -165,8 +167,10 @@ Start GemFire using Docker:
 
 ### Start the Application
 
+In applications/inference-app:
+
 ```shell
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 ---
