@@ -11,9 +11,11 @@ until docker exec -it  gf-locator  gfsh -e "connect --jmx-manager=gf-locator[109
 done
 echo "Locator is up"
 
-TODO: talk to Udo Kohlyer about whether app can talk to GF using server name without etc hosts file
+TODO: talk to Udo Kohlmeyer about whether app can talk to GF using server name without etc hosts file
 # Configure PDX
-docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "configure pdx --read-serialized=false --disk-store"
+docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "configure pdx --read-serialized=false --auto-serializable-classes=com.example.low_latency_ai.model.domain.*,com.example.low_latency_ai.productReviews.domain.* --disk-store"
+#docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "configure pdx --read-serialized=true --disk-store"
+
 # Run Cache Server
 #docker run -d  -e 'ACCEPT_TERMS=y' --rm --name gf-server1 --network=gemfire -p 40404:40404 gemfire/gemfire:10.2-jdk21 gfsh start server --name=server1 --locators=gf-locator\[10334\]
 docker run -d -e 'ACCEPT_TERMS=y' --rm --name gf-server1 --network=gemfire -p 40404:40404 -p 7080:7080 -p 7977:7977 gemfire/gemfire:10.2-jdk21 gfsh start server --name=server1 --locators=gf-locator\[10334\] --hostname-for-clients=gf-server1 --start-rest-api=true --http-service-port=7080 --J=-Dgemfire.prometheus.metrics.emission=Default --J=-Dgemfire.prometheus.metrics.port=7977  --J=-Duser.timezone=America/New_York --J=-Dgemfire.prometheus.metrics.interval=15s

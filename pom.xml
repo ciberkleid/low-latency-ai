@@ -10,6 +10,7 @@
     <version>1.0</version>
 
     <modules>
+        <module>libraries/shared-domain</module>
         <module>functions/inference-function</module>
         <module>applications/inference-app</module>
     </modules>

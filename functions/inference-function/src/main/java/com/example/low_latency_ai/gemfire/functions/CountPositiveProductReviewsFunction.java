@@ -1,7 +1,7 @@
 package com.example.low_latency_ai.gemfire.functions;
 
-import com.example.low_latency_ai.gemfire.functions.domain.AiModel;
-import com.example.low_latency_ai.gemfire.functions.domain.ProductReview;
+import com.example.low_latency_ai.model.domain.AiModel;
+import com.example.low_latency_ai.productReviews.domain.ProductReview;
 import com.example.low_latency_ai.gemfire.functions.sentiment.OnnxPositiveSentimentCounter;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
 import org.apache.geode.cache.CacheFactory;
@@ -10,6 +10,7 @@ import org.apache.geode.cache.execute.Function;
 import org.apache.geode.cache.execute.FunctionContext;
 import org.apache.geode.cache.execute.FunctionException;
 import org.apache.geode.cache.execute.RegionFunctionContext;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,19 +55,21 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
         Region<String, ProductReview> productReviewsRegion = rfc.getDataSet();
 
 
-        String[] productName = {(String) rfc.getFilter().iterator().next()};
+//        String[] productName = {(String) rfc.getFilter().iterator().next()};
+        String productName = (String) rfc.getArguments(); // THe argument here will be the productName
 
         logger.info("Product Name: {}",productName);
         try {
-            var query = productReviewsRegion.getRegionService().getQueryService().newQuery(selectByProductReviewQuery);
+            var query = rfc.getCache().getQueryService().newQuery(selectByProductReviewQuery);
 
             logger.info("Query: {}",query);
 
             // TODO: This may require using a org.apache.geode.cache.query.Struct
             // Instead of a Collection of Strings
-            Collection<String> productReviews = (Collection)query.execute(rfc,productName);
+            Collection<String> productReviews = (Collection)query.execute(rfc, new Object[]{productName});
 
             logger.info("Results: {}",productReviews.size());
+            productReviews.stream().forEach(productReview -> logger.info("Product: {}",productReview));
             var count = positiveSentimentCounter.count(new ArrayList<String>(productReviews));
             logger.info("count: {}",count);
 

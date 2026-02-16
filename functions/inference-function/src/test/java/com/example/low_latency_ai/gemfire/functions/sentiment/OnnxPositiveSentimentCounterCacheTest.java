@@ -1,7 +1,7 @@
 package com.example.low_latency_ai.gemfire.functions.sentiment;
 
-import com.example.low_latency_ai.gemfire.functions.domain.AiModel;
-import com.example.low_latency_ai.gemfire.functions.domain.Sentiment;
+import com.example.low_latency_ai.model.domain.AiModel;
+import com.example.low_latency_ai.model.domain.Sentiment;
 import org.apache.geode.cache.Region;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

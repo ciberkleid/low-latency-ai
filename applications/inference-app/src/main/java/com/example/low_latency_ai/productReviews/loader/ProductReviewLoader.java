@@ -19,6 +19,7 @@ class ProductReviewLoader implements ApplicationModuleInitializer {
 
 
         for(var lines : csvReader){
+//            ProductReview productReview = new ProductReview(lines.get(0), lines.get(1), lines.get(2));
             ProductReview productReview = ProductReview.builder()
                     .id(lines.get(0))
                     .productName(lines.get(1))

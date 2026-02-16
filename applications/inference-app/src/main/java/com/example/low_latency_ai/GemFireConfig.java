@@ -1,7 +1,7 @@
 package com.example.low_latency_ai;
 
 import ai.onnxruntime.OrtException;
-import com.example.low_latency_ai.model.AiModel;
+import com.example.low_latency_ai.model.domain.AiModel;
 import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
 import org.apache.geode.cache.DataPolicy;
 import org.apache.geode.cache.client.ClientCache;

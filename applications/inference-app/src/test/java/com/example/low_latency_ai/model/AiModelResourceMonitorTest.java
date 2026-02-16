@@ -1,5 +1,6 @@
 package com.example.low_latency_ai.model;
 
+import com.example.low_latency_ai.model.domain.AiModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,8 +46,8 @@ class AiModelResourceMonitorTest {
 
         ArgumentCaptor<AiModel> modelCaptor = ArgumentCaptor.forClass(AiModel.class);
         verify(gemfireTemplate).put(eq("key"), modelCaptor.capture());
-        assertArrayEquals(new byte[]{0x1}, modelCaptor.getValue().model());
-        assertArrayEquals(new byte[]{0x2}, modelCaptor.getValue().tokens());
+        assertArrayEquals(new byte[]{0x1}, modelCaptor.getValue().getModel());
+        assertArrayEquals(new byte[]{0x2}, modelCaptor.getValue().getTokens());
     }
 
     @Test

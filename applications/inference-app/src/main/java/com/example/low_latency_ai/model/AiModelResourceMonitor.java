@@ -1,5 +1,6 @@
 package com.example.low_latency_ai.model;
 
+import com.example.low_latency_ai.model.domain.AiModel;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;

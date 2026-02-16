@@ -1,7 +1,7 @@
 package com.example.low_latency_ai.engine.controller;
 
-import com.example.low_latency_ai.engine.domain.Sentiment;
 import com.example.low_latency_ai.engine.service.InferenceService;
+import com.example.low_latency_ai.model.domain.Sentiment;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

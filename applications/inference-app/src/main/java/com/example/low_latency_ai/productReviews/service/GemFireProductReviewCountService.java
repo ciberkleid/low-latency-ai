@@ -1,10 +1,13 @@
 package com.example.low_latency_ai.productReviews.service;
 
+import com.example.low_latency_ai.productReviews.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.productReviews.repository.ProductReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.geode.cache.Region;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -20,11 +23,10 @@ public class GemFireProductReviewCountService implements ProductReviewCountFuncS
 
     @Override
     public long countPositiveReviews(String productId) {
-        Set<?> productIs = Set.of(productId);
 
         CountResultCollector resultCollector = resultCollectorProvider.get();
         executionProvider.get(productReviewsRegion)
-                .withFilter(productIs)
+                .setArguments(productId)  // Changed from withFilter because that filters on keys
                 .withCollector(resultCollector)
                 .execute(functionId);
         return resultCollector.countPositiveReviews();

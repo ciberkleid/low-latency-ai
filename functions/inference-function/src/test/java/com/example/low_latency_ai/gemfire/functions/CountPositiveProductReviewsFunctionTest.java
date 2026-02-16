@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.gemfire.functions;
 
-import com.example.low_latency_ai.gemfire.functions.domain.ProductReview;
+import com.example.low_latency_ai.productReviews.domain.ProductReview;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionService;

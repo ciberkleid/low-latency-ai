@@ -6,8 +6,8 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import com.example.low_latency_ai.engine.domain.Sentiment;
-import com.example.low_latency_ai.model.AiModel;
+import com.example.low_latency_ai.model.domain.AiModel;
+import com.example.low_latency_ai.model.domain.Sentiment;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.geode.cache.EntryEvent;
@@ -45,8 +45,8 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
             this.env = OrtEnvironment.getEnvironment();
             var aiModel = this.aiModelSupplier.get();
 
-            this.session = env.createSession(aiModel.model(), new OrtSession.SessionOptions());
-            this.tokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.tokens()), Map.of());
+            this.session = env.createSession(aiModel.getModel(), new OrtSession.SessionOptions());
+            this.tokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.getTokens()), Map.of());
         } catch (OrtException e) {
             throw new UncheckedIOException(new IOException(e));
         } catch (IOException e) {

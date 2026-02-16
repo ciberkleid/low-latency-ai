@@ -15,6 +15,11 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.example.low_latency_ai</groupId>
+            <artifactId>shared-domain</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>com.vmware.gemfire</groupId>
             <artifactId>gemfire-core</artifactId>
             <version>${vmwareGemFire.version}</version>

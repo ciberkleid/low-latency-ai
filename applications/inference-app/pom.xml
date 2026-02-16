@@ -35,6 +35,11 @@
 	</properties>
 	<dependencies>
         <dependency>
+            <groupId>com.example.low_latency_ai</groupId>
+            <artifactId>shared-domain</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.nyla-solutions</groupId>
             <artifactId>nyla.solutions.core</artifactId>
             <version>2.4.1</version>
