@@ -34,7 +34,7 @@ echo "Locator is up"
 # 3) Apply cluster-wide PDX serialization settings through the locator.
 # Notes: Configure PDX to deserialize to Java objects on reads (read-serialized=false) rather than to read in serialized PDX format,
 #        with hint about the classes to use for deserialization (not needed for client app as Spring Data Gemfire provides the hints),
-#        and persist PDX metadata in default disk store (persistence of data itslef is configured at the Region level.
+#        and persist PDX metadata in default disk store (persistence of data itself is configured at the Region level.
 docker exec -it gf-locator gfsh \
   -e "connect --jmx-manager=gf-locator[1099]" \
   -e "configure pdx --read-serialized=false --auto-serializable-classes=com.example.low_latency_ai.domain.AiModel,com.example.low_latency_ai.domain.ProductReview --disk-store"
