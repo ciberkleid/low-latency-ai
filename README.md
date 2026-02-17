@@ -150,7 +150,7 @@ Both inference architectures use GemFire as a shared, low-latency cache for infe
 ### Download the Model
 
 ```shell
-./ops/local/model/download-model.sh
+./ops/scripts/01-download-model.sh
 ```
 
 ---
@@ -160,7 +160,7 @@ Both inference architectures use GemFire as a shared, low-latency cache for infe
 Start GemFire using Docker:
 
 ```shell
-./ops/local/docker/start-gemfire.sh
+./ops/scripts/02-setup-gemfire.sh
 ```
 
 ---
