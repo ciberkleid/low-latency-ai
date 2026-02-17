@@ -324,6 +324,14 @@ Run integration tests:
 ./mvnw test
 ```
 
+## Acknowledgments
+
+Special thanks to the following contributors whose collaboration and expertise made this project possible:
+
+- [Siva Edaichamy](https://github.com/siva-edaichamy) – Original concept and direction
+- [Gregory Green](https://github.com/ggreen) – Primary implementation
+- [Udo Kohlmeyer](https://github.com/kohlmu-pivotal) – Critical debugging support
+
 ---
 
 ## TODO
