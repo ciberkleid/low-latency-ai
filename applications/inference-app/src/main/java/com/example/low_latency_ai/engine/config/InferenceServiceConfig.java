@@ -29,6 +29,6 @@ class InferenceServiceConfig {
     ApplicationModuleInitializer setupService(InferenceService service)
     {
         // Call service to ensure model is downloaded from GemFire when app is started
-        return () -> service.execute("Making sure model is available in GemFire and pulled by engine module during startup.");
+        return () -> service.execute("Woohoo! This entry ensures client engine module pulls model from GemFire at startup. Well done!");
     }
 }
