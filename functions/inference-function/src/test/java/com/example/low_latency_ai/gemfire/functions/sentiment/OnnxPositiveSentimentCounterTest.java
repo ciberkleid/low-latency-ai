@@ -1,15 +1,7 @@
 package com.example.low_latency_ai.gemfire.functions.sentiment;
 
-import com.example.low_latency_ai.model.domain.AiModel;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.example.low_latency_ai.domain.AiModel;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 import java.util.function.Supplier;
 
 class OnnxPositiveSentimentCounterTest {

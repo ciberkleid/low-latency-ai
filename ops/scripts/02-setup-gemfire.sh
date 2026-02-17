@@ -37,7 +37,7 @@ echo "Locator is up"
 #        and persist PDX metadata in default disk store (persistence of data itslef is configured at the Region level.
 docker exec -it gf-locator gfsh \
   -e "connect --jmx-manager=gf-locator[1099]" \
-  -e "configure pdx --read-serialized=false --auto-serializable-classes=com.example.low_latency_ai.model.domain.*,com.example.low_latency_ai.productReviews.domain.* --disk-store"
+  -e "configure pdx --read-serialized=false --auto-serializable-classes=com.example.low_latency_ai.domain.AiModel,com.example.low_latency_ai.domain.ProductReview --disk-store"
 # -e "configure pdx --read-serialized=true --disk-store"
 
 # 4) Start a cache server member connected to the locator.
@@ -64,3 +64,7 @@ for REGION_NAME in "${REGION_NAMES[@]}"; do
     -e "connect --jmx-manager=gf-locator[1099]" \
     -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"
 done
+
+echo "GemFire setup complete. To connect with gfsh, run:"
+echo "docker exec -it gf-locator gfsh"
+echo "Then run 'connect'"

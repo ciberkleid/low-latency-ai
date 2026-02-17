@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.model;
 
-import com.example.low_latency_ai.model.domain.AiModel;
+import com.example.low_latency_ai.domain.AiModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;

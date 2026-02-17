@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.gemfire.functions;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
+import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.RegionService;
@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)

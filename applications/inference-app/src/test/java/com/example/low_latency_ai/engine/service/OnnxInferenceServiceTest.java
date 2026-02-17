@@ -1,8 +1,8 @@
 package com.example.low_latency_ai.engine.service;
 
 import ai.onnxruntime.OrtException;
-import com.example.low_latency_ai.model.domain.AiModel;
-import com.example.low_latency_ai.model.domain.Sentiment;
+import com.example.low_latency_ai.domain.AiModel;
+import com.example.low_latency_ai.domain.Sentiment;
 import org.apache.geode.cache.EntryEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

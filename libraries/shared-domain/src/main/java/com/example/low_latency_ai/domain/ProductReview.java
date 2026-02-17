@@ -1,4 +1,4 @@
-package com.example.low_latency_ai.productReviews.domain;
+package com.example.low_latency_ai.domain;
 
 import lombok.*;
 import org.springframework.data.gemfire.mapping.annotation.Region;

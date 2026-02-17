@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.productReviews.repository;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
+import com.example.low_latency_ai.domain.ProductReview;
 import org.springframework.data.gemfire.repository.GemfireRepository;
 import org.springframework.data.gemfire.repository.Query;
 import org.springframework.stereotype.Repository;

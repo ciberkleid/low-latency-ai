@@ -1,7 +1,6 @@
 package com.example.low_latency_ai.productReviews.loader;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
-import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.repository.ProductReviewRepository;
 import nyla.solutions.core.io.csv.CsvReader;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,12 +11,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.List;
-import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProductReviewLoaderTest {

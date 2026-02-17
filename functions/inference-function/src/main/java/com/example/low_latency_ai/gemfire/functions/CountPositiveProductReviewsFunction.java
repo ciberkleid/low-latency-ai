@@ -1,7 +1,7 @@
 package com.example.low_latency_ai.gemfire.functions;
 
-import com.example.low_latency_ai.model.domain.AiModel;
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
+import com.example.low_latency_ai.domain.AiModel;
+import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.gemfire.functions.sentiment.OnnxPositiveSentimentCounter;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
 import org.apache.geode.cache.CacheFactory;

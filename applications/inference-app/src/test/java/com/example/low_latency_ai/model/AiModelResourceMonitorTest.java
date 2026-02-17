@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.model;
 
-import com.example.low_latency_ai.model.domain.AiModel;
+import com.example.low_latency_ai.domain.AiModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

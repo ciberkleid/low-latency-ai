@@ -1,7 +1,7 @@
 package com.example.low_latency_ai.engine.service;
 
-import com.example.low_latency_ai.model.domain.AiModel;
-import com.example.low_latency_ai.model.domain.Sentiment;
+import com.example.low_latency_ai.domain.AiModel;
+import com.example.low_latency_ai.domain.Sentiment;
 
 public interface InferenceService {
     Sentiment execute(String text);

@@ -1,7 +1,6 @@
 package com.example.low_latency_ai.productReviews.loader;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
-import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.repository.ProductReviewRepository;
 import lombok.RequiredArgsConstructor;
 import nyla.solutions.core.io.csv.CsvReader;

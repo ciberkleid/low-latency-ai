@@ -1,14 +1,10 @@
 package com.example.low_latency_ai.productReviews.service;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
-import com.example.low_latency_ai.productReviews.repository.ProductReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.geode.cache.Region;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.Set;
 import java.util.function.Supplier;
 
 @Service
