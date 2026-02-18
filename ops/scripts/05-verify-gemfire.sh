@@ -36,8 +36,8 @@
 # docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list functions"
 docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "query --query='select key,value from /SentimentResults.entries'"
 
-
-
+### Note that you can also invoke the function from gfsh:
+# execute function --id=countPositiveReviews --region=/ProductReviews --arguments=Lawnmower
 
 ### Miscellaneous comment -- the following syntax works without PDX:
 ### query --query="select key,value from /ProductReviews.entries"

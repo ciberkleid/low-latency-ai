@@ -2,8 +2,8 @@ package com.example.low_latency_ai.gemfire.functions;
 
 import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.gemfire.functions.sentiment.PositiveSentimentCounter;
+import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.RegionService;
 import org.apache.geode.cache.execute.RegionFunctionContext;
 import org.apache.geode.cache.execute.ResultSender;
 import org.apache.geode.cache.query.*;
@@ -15,7 +15,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -27,13 +26,13 @@ class CountPositiveProductReviewsFunctionTest {
     private PositiveSentimentCounter positiveSentimentCounter;
 
     @Mock
-    private RegionFunctionContext<String[]> rfc;
+    private RegionFunctionContext<Object> rfc;
     @Mock
     private Region<String, ProductReview> productReviewsRegion;
     @Mock
-    private ResultSender resultSender;
+    private Cache cache;
     @Mock
-    private RegionService regionService;
+    private ResultSender resultSender;
     @Mock
     private QueryService queryService;
     @Mock
@@ -53,14 +52,13 @@ class CountPositiveProductReviewsFunctionTest {
         var listOfProductComments = List.of("I love Junit", "This is a lot of mocking");
         Long positiveCount = 1L;
 
-        Set productIdArg = Set.of(productId);
-        when(rfc.getFilter()).thenReturn(productIdArg);
+        when(rfc.getArguments()).thenReturn(productId);
 
         when(rfc.getResultSender()).thenReturn(resultSender);
+        when(rfc.getCache()).thenReturn(cache);
 
         when(rfc.getDataSet()).thenReturn((Region)productReviewsRegion);
-        when(productReviewsRegion.getRegionService()).thenReturn(regionService);
-        when(regionService.getQueryService()).thenReturn(queryService);
+        when(cache.getQueryService()).thenReturn(queryService);
         when(queryService.newQuery(any())).thenReturn(query);
         when(query.execute(any(RegionFunctionContext.class),any())).thenReturn(listOfProductComments);
 

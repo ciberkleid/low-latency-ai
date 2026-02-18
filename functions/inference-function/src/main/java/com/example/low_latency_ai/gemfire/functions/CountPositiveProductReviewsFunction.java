@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class CountPositiveProductReviewsFunction implements Function<String[]> {
+public class CountPositiveProductReviewsFunction implements Function<Object> {
 
     private static final String REGION_NM = "AiModel";
     private static final String MODEL_KEY_NM = "sentiment";
@@ -42,20 +42,18 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
     }
 
     @Override
-    public void execute(FunctionContext<String[]> functionContext) {
+    public void execute(FunctionContext<Object> functionContext) {
 
         logger.info("Executing function");
         // Notes:
-        // 1. Use FunctionContext<String[]> rather than FunctionContext<String> to
-        //    facilitate testing from gfsh, as gfsh passes a String[] of arguments
-        // 2. The Region to act on is part of the passed functionContext
+        // 1. Accept Object arguments to support both API calls (String) and gfsh usage (String[]).
+        // 2. The Region to act on is part of the passed functionContext.
 
         var rfc = (RegionFunctionContext) functionContext;
 
         Region<String, ProductReview> productReviewsRegion = rfc.getDataSet();
 
-        // String[] productName = {(String) rfc.getFilter().iterator().next()};
-        String productName = (String) rfc.getArguments(); // The argument here will be the productName
+        String productName = toProductName(rfc.getArguments());
 
         logger.info("Product Name: {}",productName);
         try {
@@ -84,5 +82,15 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
     @Override
     public String getId() {
         return "countPositiveReviews";
+    }
+
+    private String toProductName(Object arguments) {
+        if (arguments instanceof String productName) {
+            return productName;
+        }
+        if (arguments instanceof String[] values && values.length > 0 && values[0] != null) {
+            return values[0];
+        }
+        throw new FunctionException("countPositiveReviews requires argument type String or non-empty String[]");
     }
 }
