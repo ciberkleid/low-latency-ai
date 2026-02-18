@@ -147,6 +147,22 @@ Both inference architectures use GemFire as a shared, low-latency cache for infe
 
 ## Running the Demo
 
+### Pre-requisite:
+You may need to add the locator and member to your `/etc/hosts` file, as shown here:
+```shell
+~ $ cat /etc/hosts
+##
+# Host Database
+#
+# localhost is used to configure the loopback interface
+# when the system is booting.  Do not change this entry.
+##
+127.0.0.1	localhost
+127.0.0.1       gf-locator
+127.0.0.1       gf-server1
+```
+
+
 ### Download the Model
 
 Download the model artifacts.
@@ -257,21 +273,23 @@ Executing onnx inference service using text: Woohoo! This entry ensures client e
 ```
 
 ---
-### Send requests
+### Send Edge Requests
 
-Send sample inference requests:
-This script exercises two lcient app APIs.
-One executes inference locally with the model in-memory, and the other causes the app to execute the function in GemFire, which runs the inference logic, model and data all on GemFire server1. 
-
-In both cases, the Sentiment region on server1 is used to cache inference results.
-On the first request, logs will show inference execution and a cache `PutOp`.
-Subsequent requests with the same input will show only a cache `GetOp`.
+Send sample client-side inference requests.
+This script exercises the client app API that executes inference locally with the model in-memory.
 
 ```shell
-./ops/scripts/04-send-requests.sh
+./ops/scripts/04-send-edge-requests.sh
 ```
 
-Example log output:
+
+The Sentiment region on server1 is used to cache inference results.
+On the first request, logs will show inference execution and a cache `PutOp`.
+Subsequent requests with the same input will show only a cache `GetOp`.
+The script output will show the latency of the request.
+Notice also the substantial improvment in response time with a cache hit after the first execution (an order of magnitude).
+
+You can also check the client log output. It should look something like this:
 
 ```txt
 2026-01-15T10:38:54.959-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-5] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
@@ -281,28 +299,28 @@ Example log output:
 2026-01-15T10:38:55.778-05:00 DEBUG 42167 --- [low-latency-ai] [nio-8080-exec-6] o.a.g.cache.client.internal.AbstractOp   : constructing a GetOp for key "Spring is awesome"
 ```
 
-
-
 ---
 
 ## Verifying the Demo
 
-This script contains avarious queries to validate the demo, including verifying cached inferenceResults in the SentimentResults region.
+This script contains various queries to validate the demo, including verifying cached inference results in the SentimentResults region.
 
 ```shell
 ./ops/scripts/05-verify-gemfire.sh
-
-
-
+```
 
 ---
 
 ### Verify Model Updates
 
-```shell
-./ops/scripts/06-uodate-model.sh
-````
+
 Modify the local model or tokenizer (adding an empty line to `tokenizer.json` is sufficient).
+You can also use this script to make the change:
+
+```shell
+./ops/scripts/06-update-model.sh
+```
+
 Within a few seconds, you should see:
 
 ```txt
@@ -312,7 +330,22 @@ Within a few seconds, you should see:
 2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Updating local Onnx session and tokenizer with new model.
 ```
 
-This confirms that local model changes propagate through GemFire and update in-memory inference sessions.
+This confirms that local model changes propagate through GemFire and update in-memory inference sessions without any application downtime.
+
+---
+
+### Send Function Requests
+
+Next, exercise the server-side function endpoint:
+
+Here too, the script output will show the latency of the request.
+Notice again the substantial improvment in response time with a cache hit after the first execution.
+
+```shell
+./ops/scripts/07-send-function-requests.sh
+```
+
+You can also reference `05-verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side flogging showing the execution of te funtion (hint: run `show log --member=server1 --lines=100`).
 
 ---
 
