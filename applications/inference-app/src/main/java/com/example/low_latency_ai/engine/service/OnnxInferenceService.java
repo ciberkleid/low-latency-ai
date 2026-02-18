@@ -41,15 +41,37 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
     }
 
     private void setupSessionAndTokenizer() {
+        // Build replacements first so we only swap state after successful initialization.
+        OrtSession newSession = null;
+        HuggingFaceTokenizer newTokenizer = null;
+
         try {
             this.env = OrtEnvironment.getEnvironment();
             var aiModel = this.aiModelSupplier.get();
 
-            this.session = env.createSession(aiModel.getModel(), new OrtSession.SessionOptions());
-            this.tokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.getTokens()), Map.of());
+            newSession = env.createSession(aiModel.getModel(), new OrtSession.SessionOptions());
+            newTokenizer = HuggingFaceTokenizer.newInstance(new ByteArrayInputStream(aiModel.getTokens()), Map.of());
+
+            // Keep references to prior resources so they can be closed after swap.
+            OrtSession previousSession = this.session;
+            HuggingFaceTokenizer previousTokenizer = this.tokenizer;
+
+            // Atomically publish new runtime objects for subsequent inference calls.
+            this.session = newSession;
+            this.tokenizer = newTokenizer;
+
+            // Release old native/resources after successful swap to avoid leaks on model refresh.
+            closeQuietly(previousSession, "previous ONNX session");
+            closeQuietly(previousTokenizer, "previous tokenizer");
         } catch (OrtException e) {
+            // If creation fails, clean up partially initialized replacement resources.
+            closeQuietly(newSession, "new ONNX session");
+            closeQuietly(newTokenizer, "new tokenizer");
             throw new UncheckedIOException(new IOException(e));
         } catch (IOException e) {
+            // If creation fails, clean up partially initialized replacement resources.
+            closeQuietly(newSession, "new ONNX session");
+            closeQuietly(newTokenizer, "new tokenizer");
             throw new UncheckedIOException(e);
         }
     }
@@ -110,6 +132,21 @@ public class OnnxInferenceService extends AbstractCommonEventProcessingCacheList
 
     HuggingFaceTokenizer getTokenizer() {
         return this.tokenizer;
+    }
+
+    OrtSession getSession() {
+        return this.session;
+    }
+
+    private void closeQuietly(Object resource, String resourceName) {
+        // Both OrtSession and HuggingFaceTokenizer are AutoCloseable in this setup.
+        if (resource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                log.warn("Failed to close {}", resourceName, e);
+            }
+        }
     }
 
 }

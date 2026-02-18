@@ -1,6 +1,10 @@
 package com.example.low_latency_ai.engine.service;
 
+import ai.djl.huggingface.tokenizers.Encoding;
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 import com.example.low_latency_ai.domain.AiModel;
 import com.example.low_latency_ai.domain.Sentiment;
 import org.apache.geode.cache.EntryEvent;
@@ -15,8 +19,10 @@ import org.springframework.geode.cache.AbstractCommonEventProcessingCacheListene
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.when;
 
@@ -78,6 +84,41 @@ class OnnxInferenceServiceTest {
         assertThat(tokenizer).isNotEqualTo(subject.getTokenizer());
 
 
+    }
+
+    @Test
+    void given_existing_runtime_objects_when_updateModel_then_previous_session_and_tokenizer_are_closed() throws Exception {
+        // Initialize model runtime resources (session + tokenizer) via a normal inference request.
+        subject.execute(positiveText);
+        OrtSession oldSession = subject.getSession();
+        var oldTokenizer = subject.getTokenizer();
+
+        // Trigger model refresh; this should swap in new resources and close the old ones.
+        subject.updateModel(aiModel);
+
+        assertThat(subject.getSession()).isNotSameAs(oldSession);
+        assertThat(subject.getTokenizer()).isNotSameAs(oldTokenizer);
+
+        // Closed tokenizer should not accept further encode operations.
+        assertThatThrownBy(() -> oldTokenizer.encode("still-usable?"))
+                .as("Old tokenizer should be closed after updateModel")
+                .isInstanceOfAny(Exception.class);
+
+        // Closed session should not allow inference calls.
+        Encoding encoding = subject.getTokenizer().encode("still-usable?");
+        long[][] inputIds = {encoding.getIds()};
+        long[][] attentionMask = {encoding.getAttentionMask()};
+        OrtEnvironment env = OrtEnvironment.getEnvironment();
+
+        try (OnnxTensor idsTensor = OnnxTensor.createTensor(env, inputIds);
+             OnnxTensor maskTensor = OnnxTensor.createTensor(env, attentionMask)) {
+            assertThatThrownBy(() -> oldSession.run(Map.of(
+                    "input_ids", idsTensor,
+                    "attention_mask", maskTensor
+            )))
+                    .as("Old ONNX session should be closed after updateModel")
+                    .isInstanceOfAny(Exception.class);
+        }
     }
 
     @Test
