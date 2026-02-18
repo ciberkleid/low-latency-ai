@@ -2,8 +2,6 @@ package com.example.low_latency_ai.productReviews.controller;
 
 import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
 import com.example.low_latency_ai.productReviews.service.ProductReviewCountFuncService;
-import org.apache.geode.cache.Region;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)

@@ -1,11 +1,8 @@
 package com.example.low_latency_ai.productReviews.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.geode.cache.execute.ResultCollector;
 import org.apache.geode.distributed.DistributedMember;
 import org.springframework.geode.function.support.AbstractResultCollector;
-
-import java.util.List;
 
 @Slf4j
 public class CountResultCollector extends AbstractResultCollector<Object,

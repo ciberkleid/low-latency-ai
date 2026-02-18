@@ -10,7 +10,6 @@ import org.apache.geode.cache.execute.Function;
 import org.apache.geode.cache.execute.FunctionContext;
 import org.apache.geode.cache.execute.FunctionException;
 import org.apache.geode.cache.execute.RegionFunctionContext;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,8 +26,8 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
     private final PositiveSentimentCounter positiveSentimentCounter;
     private Logger logger = LogManager.getLogger(CountPositiveProductReviewsFunction.class);
 
-    // No args constructor is used by each GemFire server to initialize the function
-    // at time of deployment
+    // No args constructor is needed by each GemFire server to initialize
+    // the function at time of deployment
     public CountPositiveProductReviewsFunction(){
         this(new OnnxPositiveSentimentCounter(() ->{
             Region<String, AiModel> region = CacheFactory.getAnyInstance()
@@ -37,6 +36,7 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
             return region.get(MODEL_KEY_NM);
         }));
     }
+
     public CountPositiveProductReviewsFunction(PositiveSentimentCounter positiveSentimentCounter) {
         this.positiveSentimentCounter = positiveSentimentCounter;
     }
@@ -54,9 +54,8 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
 
         Region<String, ProductReview> productReviewsRegion = rfc.getDataSet();
 
-
-//        String[] productName = {(String) rfc.getFilter().iterator().next()};
-        String productName = (String) rfc.getArguments(); // THe argument here will be the productName
+        // String[] productName = {(String) rfc.getFilter().iterator().next()};
+        String productName = (String) rfc.getArguments(); // The argument here will be the productName
 
         logger.info("Product Name: {}",productName);
         try {
@@ -64,8 +63,7 @@ public class CountPositiveProductReviewsFunction implements Function<String[]> {
 
             logger.info("Query: {}",query);
 
-            // TODO: This may require using a org.apache.geode.cache.query.Struct
-            // Instead of a Collection of Strings
+            // TODO: This may require using a org.apache.geode.cache.query.Struct instead of a Collection of Strings
             Collection<String> productReviews = (Collection)query.execute(rfc, new Object[]{productName});
 
             logger.info("Results: {}",productReviews.size());

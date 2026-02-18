@@ -6,9 +6,8 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-
-import com.example.low_latency_ai.domain.Sentiment;
 import com.example.low_latency_ai.domain.AiModel;
+import com.example.low_latency_ai.domain.Sentiment;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.cache.Region;
