@@ -1,6 +1,5 @@
 package com.example.low_latency_ai.engine.controller;
 
-import com.example.low_latency_ai.engine.service.InferenceService;
 import com.example.low_latency_ai.domain.Sentiment;
 import com.example.low_latency_ai.engine.service.InferenceService;
 import lombok.RequiredArgsConstructor;
