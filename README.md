@@ -38,37 +38,8 @@ Evaluate sentiment for a single user-submitted string:
 - **GemFire → Spring app:** returns the cached inference result
 
 ### Components
-- **loader module**: one-time utility that uploads the ONNX model and tokenizer to GemFire
+- **model module**: one-time utility that uploads the ONNX model and tokenizer to GemFire
 - **engine module**: runtime component used by application instances to download the model from GemFire into memory, serve inference, and cache results in the `SentimentResults` region
-
-### Model Update Propagation Flow
-
-GemFire Regions are comparable to database tables: they act as the system of record for models and tokenizers, and—like database triggers—can emit change events when those records are updated.
- The Spring application uses these change events to refresh the in-memory model.
-
-#### Initial Model Load (Startup)
-
-- **Loader module → GemFire:** a one-time or administrative process uploads the ONNX model and tokenizer to the `Models` region
-- **Engine module → GemFire:** on startup, each engine instance uses a Spring Data GemFire repository to fetch the model by name (for example, key `Sentiment` from the `Models` region)
-- **GemFire:** returns the current model and tokenizer stored in the region
-- **Engine module:** loads the model into memory and initializes the inference service
-- **Engine module:** performs this initial model load once per application instance
-
-#### Model Update Propagation (Runtime)
-
-- **Loader module / operator → GemFire:** uploads an updated model or tokenizer to the `Models` region
-- **GemFire:** updates the region entry and emits a change event, analogous to a database trigger firing on update
-- **Engine module:** receives the region change event via a listener or trigger
-- **Engine module:** responds to the event by reloading the updated model from GemFire
-- **Engine module:** replaces or refreshes the in-memory model used for inference
-- **Subsequent inference requests:** are served using the updated model
-
-#### Notes and Constraints
-
-- GemFire propagates model update notifications through region change events
-- The engine module is responsible for deciding when and how to reload the model in response to change events. In this demo, the engine service supports both constructor-based model initialization (startup) and runtime model replacement (updates).
-- This explicit reload mechanism avoids hidden side effects and keeps model lifecycle management under application control
-DETE THIS
 
 ### Model Update Propagation Flow
 
@@ -78,15 +49,15 @@ GemFire Regions are comparable to database tables: they act as the system of rec
 
 #### Initial Model Load (Startup)
 
-- **Loader module → GemFire:** uploads the initial version of the ONNX model and tokenizer to the `Models` region
+- **Model module → GemFire:** uploads the initial version of the ONNX model and tokenizer to the `Models` region
 - **Engine module → GemFire:** on startup, each engine instance uses a Spring Data GemFire repository to fetch the model by name (for example, key `Sentiment` from the `Models` region)
 - **GemFire:** returns the current model and tokenizer stored in the region
 - **Engine module:** loads the model into memory and initializes the inference service
 
 #### Model Update Propagation (Runtime)
 
-- **Loader module:** polls a local directory for changes to the model or tokenizer files
-- **Loader module → GemFire:** when a file change is detected, uploads the updated model or tokenizer to the `Models` region
+- **Model module:** polls a local directory for changes to the model or tokenizer files
+- **Model module → GemFire:** when a file change is detected, uploads the updated model or tokenizer to the `Models` region
 - **GemFire:** updates the region entry and emits a region change event
 - **Engine module:** receives the region event indicating that the model has changed
 - **Engine module:** explicitly reloads the updated model from GemFire
@@ -106,7 +77,7 @@ GemFire Regions are comparable to database tables: they act as the system of rec
 ### Use Case
 - Submit a product ID
 - Query the `ProductReviews` region for comments
-- Evaluate sentiment per comment (using the same ONNX model uploaded by the Spring app **loader**)
+- Evaluate sentiment per comment (using the same ONNX model uploaded by the Spring app ** model** module)
 - Return the percentage of positive reviews
 - Cache per-comment results in the shared `SentimentResults` region
 
@@ -226,7 +197,7 @@ docker exec -it gf-locator gfsh
 
 Then, at the `gfsh` prompt in the container, run:
 ```gfsh
-connec
+connect
 list regions
 ```
 
@@ -287,7 +258,7 @@ The Sentiment region on server1 is used to cache inference results.
 On the first request, logs will show inference execution and a cache `PutOp`.
 Subsequent requests with the same input will show only a cache `GetOp`.
 The script output will show the latency of the request.
-Notice also the substantial improvment in response time with a cache hit after the first execution (an order of magnitude).
+Notice also the substantial improvement in response time with a cache hit after the first execution (an order of magnitude).
 
 You can also check the client log output. It should look something like this:
 
@@ -324,10 +295,10 @@ You can also use this script to make the change:
 Within a few seconds, you should see:
 
 ```txt
-2026-01-16T11:51:33.380-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.loader.AiModelResourceMonitor      : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
-2026-01-16T11:51:33.542-05:00 DEBUG 96553 --- [low-latency-ai] [   scheduling-1] o.a.g.cache.client.internal.AbstractOp   : PutOpImpl constructing message for EventID[id=39 bytes;threadID=283533;sequenceID=0]; operation=UPDATE
-2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Update event detected: Received new model from GemFire
-2026-01-16T11:51:38.416-05:00  INFO 96553 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Updating local Onnx session and tokenizer with new model.
+2026-02-18T01:36:22.744-05:00  INFO 29850 --- [low-latency-ai] [   scheduling-1] c.e.l.model.AiModelResourceMonitor       : Detected change in AI assets (model: false, tokenizer: true). Refreshing GemFire entry.
+2026-02-18T01:36:23.086-05:00 DEBUG 29850 --- [low-latency-ai] [   scheduling-1] o.a.g.cache.client.internal.AbstractOp   : PutOpImpl constructing message for EventID[id=39 bytes;threadID=823656;sequenceID=1]; operation=UPDATE
+2026-02-18T01:36:25.891-05:00  INFO 29850 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Update event detected: Received new model from GemFire.
+2026-02-18T01:36:25.891-05:00  INFO 29850 --- [low-latency-ai] [   scheduling-1] c.e.l.e.service.OnnxInferenceService     : Updating local Onnx session and tokenizer with new model.
 ```
 
 This confirms that local model changes propagate through GemFire and update in-memory inference sessions without any application downtime.
@@ -339,13 +310,13 @@ This confirms that local model changes propagate through GemFire and update in-m
 Next, exercise the server-side function endpoint:
 
 Here too, the script output will show the latency of the request.
-Notice again the substantial improvment in response time with a cache hit after the first execution.
+Notice again the substantial improvement in response time with a cache hit after the first execution.
 
 ```shell
 ./ops/scripts/07-send-function-requests.sh
 ```
 
-You can also reference `05-verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side flogging showing the execution of te funtion (hint: run `show log --member=server1 --lines=100`).
+You can also reference `05-verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side logging showing the execution of the function (hint: run `show log --member=server1 --lines=100`).
 
 ---
 
