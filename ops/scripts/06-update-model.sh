@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # This script simulates a model update by simply updating the last modified time of the local model tokenizer file.
 # The expectation is that the `loader` module in the client app will detect the file change and push the "new" model to GemFire.
 # GemFire will send an event upon the update to the AiModel rgion.

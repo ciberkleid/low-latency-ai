@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Model: distilbert-base-uncased-finetuned-sst-2-english
 #
 # A lightweight transformer model for binary sentiment analysis in English.
@@ -14,9 +17,9 @@
 
 DEST=models/distilbert/distilbert-base-uncased-finetuned-sst-2-english
 
-rm -rf $DEST
-mkdir -p $DEST
-cd $DEST
+rm -rf "$DEST"
+mkdir -p "$DEST"
+cd "$DEST"
 
 wget https://huggingface.co/distilbert/distilbert-base-uncased-finetuned-sst-2-english/resolve/main/onnx/model.onnx
 wget https://huggingface.co/distilbert/distilbert-base-uncased-finetuned-sst-2-english/resolve/main/onnx/tokenizer.json

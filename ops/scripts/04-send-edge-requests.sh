@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Access endpoints to exercise client-side and server-side inference
 
 # Swagger UI:

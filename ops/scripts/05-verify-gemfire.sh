@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 ### Connect using gfsh:
 # docker exec -it gf-locator gfsh
 # connect
