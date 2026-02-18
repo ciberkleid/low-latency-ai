@@ -17,6 +17,7 @@ class ProductReviewController {
     @GetMapping("{productId}")
     public ProductReviewSummary getProductReviewSummary(@PathVariable String productId) {
         return ProductReviewSummary.builder()
+                .id(productId)
                 .positiveCount(service.countPositiveReviews(productId))
                 .build();
     }

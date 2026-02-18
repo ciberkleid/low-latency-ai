@@ -27,7 +27,7 @@ class ProductReviewControllerTest {
 
     @Test
     void given_a_product_when_getProductReviews_then_return_percentage_positve_and_total() {
-        var expected = ProductReviewSummary.builder().positiveCount(3).build(); ;
+        var expected = ProductReviewSummary.builder().id(productId).positiveCount(3).build();
         when(service.countPositiveReviews(productId)).thenReturn(expected.positiveCount());
 
         var actual = subject.getProductReviewSummary(productId);
