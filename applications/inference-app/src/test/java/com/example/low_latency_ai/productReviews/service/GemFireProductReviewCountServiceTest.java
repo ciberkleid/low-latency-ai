@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.productReviews.service;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.domain.ProductReview;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.execute.Execution;
 import org.assertj.core.api.Assertions;
@@ -19,7 +19,7 @@ class GemFireProductReviewCountServiceTest {
     private GemFireProductReviewCountService subject;
     private final String productId = "spring";
     @Mock
-    private Region<String, ProductReviewSummary> productReviewsRegion;
+    private Region<String, ProductReview> productReviewsRegion;
     @Mock
     private CountResultCollector collector;
     @Mock
@@ -40,7 +40,7 @@ class GemFireProductReviewCountServiceTest {
         long expectedCount = 30;
         when(collector.countPositiveReviews()).thenReturn(expectedCount);
         when(provider.get(any())).thenReturn(execution);
-        when(execution.withFilter(any())).thenReturn(execution);
+        when(execution.setArguments(any())).thenReturn(execution);
         when(execution.withCollector(any())).thenReturn(execution);
 
 

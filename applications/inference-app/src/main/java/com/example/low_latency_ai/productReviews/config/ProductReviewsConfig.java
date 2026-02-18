@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.productReviews.config;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.service.CountResultCollector;
 import com.example.low_latency_ai.productReviews.service.ExecutionProvider;
 import nyla.solutions.core.io.csv.CsvReader;
@@ -34,7 +34,7 @@ class ProductReviewsConfig {
     }
 
     @Bean
-    Region<String, ProductReviewSummary> productReviewsRegion(@Qualifier("productReviewsTemplate") GemfireTemplate gemfireTemplate){
+    Region<String, ProductReview> productReviewsRegion(@Qualifier("productReviewsTemplate") GemfireTemplate gemfireTemplate){
 
         return ClientCacheFactory.getAnyInstance().getRegion("ProductReviews");
     }

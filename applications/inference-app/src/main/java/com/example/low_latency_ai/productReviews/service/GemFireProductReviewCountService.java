@@ -1,6 +1,6 @@
 package com.example.low_latency_ai.productReviews.service;
 
-import com.example.low_latency_ai.productReviews.domain.ProductReviewSummary;
+import com.example.low_latency_ai.domain.ProductReview;
 import lombok.RequiredArgsConstructor;
 import org.apache.geode.cache.Region;
 import org.springframework.stereotype.Service;
@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 public class GemFireProductReviewCountService implements ProductReviewCountFuncService{
     private final static String functionId = "countPositiveReviews";
 
-    private final Region<String, ProductReviewSummary> productReviewsRegion;
+    private final Region<String, ProductReview> productReviewsRegion;
     private final Supplier<CountResultCollector> resultCollectorProvider;
     private final ExecutionProvider executionProvider;
 
@@ -28,4 +28,3 @@ public class GemFireProductReviewCountService implements ProductReviewCountFuncS
         return resultCollector.countPositiveReviews();
     }
 }
-
