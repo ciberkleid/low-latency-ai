@@ -16,8 +16,13 @@ class ProductReviewLoader implements ApplicationModuleInitializer {
     @Override
     public void initialize() {
 
-
+        int rowNumber = 0;
         for(var lines : csvReader){
+            rowNumber++;
+            if (lines == null || lines.size() < 3) {
+                throw new IllegalArgumentException("Invalid product reviews CSV row at line " + rowNumber + ": expected at least 3 columns (id, productName, review)");
+            }
+
             ProductReview productReview = ProductReview.builder()
                     .id(lines.get(0))
                     .productName(lines.get(1))

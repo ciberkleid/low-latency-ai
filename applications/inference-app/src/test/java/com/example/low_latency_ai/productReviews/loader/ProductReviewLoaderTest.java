@@ -12,8 +12,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class ProductReviewLoaderTest {
@@ -43,5 +45,17 @@ class ProductReviewLoaderTest {
 
         verify(repository).save(any(ProductReview.class));
 
+    }
+
+    @Test
+    void given_malformed_csv_row_when_load_then_throw_clear_error_and_do_not_save() throws IOException {
+        var badCsv = """
+                "1-spring", "spring"
+                """;
+        var badReader = new CsvReader(new StringReader(badCsv));
+        var badSubject = new ProductReviewLoader(repository, badReader);
+
+        assertThrows(IllegalArgumentException.class, badSubject::initialize);
+        verifyNoInteractions(repository);
     }
 }
