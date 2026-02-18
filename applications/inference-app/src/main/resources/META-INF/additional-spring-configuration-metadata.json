@@ -1,12 +1,12 @@
 {
   "properties": [
     {
-      "name": "ai.loader.model",
+      "name": "ai.model.model",
       "type": "java.lang.String",
       "description": "Classpath or file path to the ONNX model used by AiModelLoader."
     },
     {
-      "name": "ai.loader.tokenizer",
+      "name": "ai.model.tokenizer",
       "type": "java.lang.String",
       "description": "Classpath or file path to the tokenizer JSON used by AiModelLoader."
     }
