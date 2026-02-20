@@ -1,0 +1,137 @@
+name: low-latency-ai
+
+services:
+  gf-locator:
+    image: gemfire/gemfire:10.2-jdk21
+    container_name: gf-locator
+    environment:
+      ACCEPT_TERMS: "y"
+    command:
+      - gfsh
+      - start
+      - locator
+      - --name=locator1
+      - --jmx-manager-hostname-for-clients=gf-locator
+      - --hostname-for-clients=gf-locator
+      - --J=-Dgemfire.prometheus.metrics.emission=Default
+      - --J=-Dgemfire.prometheus.metrics.port=7777
+      - --J=-Duser.timezone=America/New_York
+      - --J=-Dgemfire.prometheus.metrics.interval=15s
+      - --J=-Djava.rmi.server.hostname=gf-locator
+      - --J=-Dgemfire.tcp-port=7999
+    ports:
+      - "10334:10334"
+      - "1099:1099"
+      - "7070:7070"
+      - "7999:7999"
+      - "7777:7777"
+    # Optional persistent storage (uncomment to persist GemFire files across container recreation):
+    # volumes:
+    #   - gf_locator_data:/data
+    networks:
+      - gemfire
+    healthcheck:
+      test: ["CMD-SHELL", "gfsh -e \"connect --jmx-manager=gf-locator[1099]\" >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+      start_period: 10s
+
+  gf-pdx-config:
+    image: gemfire/gemfire:10.2-jdk21
+    container_name: gf-pdx-config
+    volumes:
+      - ./pdx-config.gfsh:/scripts/pdx-config.gfsh:ro
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        until gfsh -e "connect --jmx-manager=gf-locator[1099]" >/dev/null 2>&1; do
+          echo "Waiting for locator to start..."
+          sleep 2
+        done
+        gfsh -e "run --file=/scripts/pdx-config.gfsh"
+    networks:
+      - gemfire
+    depends_on:
+      gf-locator:
+        condition: service_healthy
+    restart: "no"
+
+  gf-server1:
+    image: gemfire/gemfire:10.2-jdk21
+    container_name: gf-server1
+    environment:
+      ACCEPT_TERMS: "y"
+    command:
+      - gfsh
+      - start
+      - server
+      - --name=server1
+      - --locators=gf-locator[10334]
+      - --hostname-for-clients=gf-server1
+      - --start-rest-api=true
+      - --http-service-port=7080
+      - --J=-Dgemfire.prometheus.metrics.emission=Default
+      - --J=-Dgemfire.prometheus.metrics.port=7977
+      - --J=-Duser.timezone=America/New_York
+      - --J=-Dgemfire.prometheus.metrics.interval=15s
+    ports:
+      - "40404:40404"
+      - "7080:7080"
+      - "7977:7977"
+    # Optional persistent storage (uncomment to persist GemFire files across container recreation):
+    # volumes:
+    #   - gf_server1_data:/data
+    networks:
+      - gemfire
+    depends_on:
+      gf-locator:
+        condition: service_healthy
+      gf-pdx-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list members" 2>/dev/null
+          | grep -q "server1"
+      interval: 5s
+      timeout: 4s
+      retries: 20
+      start_period: 15s
+
+  gf-regions-init:
+    image: gemfire/gemfire:10.2-jdk21
+    container_name: gf-regions-init
+    volumes:
+      - ./regions-init.gfsh:/scripts/regions-init.gfsh:ro
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        until gfsh -e "connect --jmx-manager=gf-locator[1099]" >/dev/null 2>&1; do
+          echo "Waiting for locator to start..."
+          sleep 2
+        done
+        gfsh -e "run --file=/scripts/regions-init.gfsh"
+    networks:
+      - gemfire
+    depends_on:
+      gf-locator:
+        condition: service_healthy
+      gf-pdx-config:
+        condition: service_completed_successfully
+      gf-server1:
+        condition: service_healthy
+    restart: "no"
+
+networks:
+  gemfire:
+    name: gemfire
+    driver: bridge
+
+# Optional named volumes for persistence (uncomment if enabling service volumes above):
+# volumes:
+#   gf_locator_data:
+#   gf_server1_data:

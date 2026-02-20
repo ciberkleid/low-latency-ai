@@ -1,0 +1,13 @@
+# Configure cluster-wide PDX serialization:
+# - read-serialized=false: deserialize PDX values into domain objects on read
+# - auto-serializable-classes: classes GemFire should auto-serialize via PDX
+# - disk-store: persist PDX metadata in the cluster disk store
+
+connect --jmx-manager=gf-locator[1099]
+
+configure pdx \
+  --read-serialized=false \
+  --auto-serializable-classes=com.example.low_latency_ai.domain.AiModel,com.example.low_latency_ai.domain.ProductReview \
+  --disk-store
+disconnect
+exit

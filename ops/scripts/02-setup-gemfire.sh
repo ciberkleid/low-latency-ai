@@ -2,95 +2,73 @@
 set -euo pipefail
 
 # Bootstraps a local Apache Geode/GemFire environment using Docker.
-# Script flow:
-# 1) Creates a dedicated Docker bridge network.
-# 2) Starts a locator and waits for JMX readiness.
-# 3) Applies cluster PDX serialization configuration.
-# 4) Starts a cache server connected to the locator.
-# 5) Creates application regions used by this project.
 # Intended use: local development and manual environment setup.
 
-# 1) Create an isolated Docker network for GemFire containers.
-echo
-if ! docker network inspect gemfire >/dev/null 2>&1; then
-  echo "Creating docker network: gemfire"
-  docker network create gemfire --driver bridge
+# Compose flow in docker-compose.yml:
+# 1) Start gf-locator and wait for healthcheck readiness.
+# 2) Run gf-pdx-config to apply PDX cluster configuration.
+# 3) Start gf-server1 after locator and PDX config are complete.
+# 4) Run gf-regions-init to create required regions.
+
+# Compose lifecycle commands quick reference:
+#   up -d   : create/start services in the background.
+#   stop    : stop services but keep containers/network for later reuse.
+#   start   : start previously stopped services without recreating.
+#   down    : stop and remove services and network (and container-local state).
+#             if named volumes are enabled for persistence (see compose file), use `docker compose down -v` to wipe persisted data.
+# Environment variables:
+#   COMPOSE_FILE     : compose file path. If unset, defaults to ops/gemfire/docker-compose.yml.
+
+# Set or validate compose file
+# docker compose will take file name from COMPOSE_FILE if set
+if [[ -z "${COMPOSE_FILE:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  COMPOSE_FILE="${SCRIPT_DIR}/../gemfire/docker-compose.yml"
+  export COMPOSE_FILE
 fi
 
-# Remove prior containers so reruns are deterministic.
-echo
-for container in gf-locator gf-server1; do
-  removed_id="$(docker rm -f "$container" 2>/dev/null || true)"
-  if [[ -n "$removed_id" ]]; then
-    echo "Removed container: name=$container id=$removed_id"
-  fi
-done
+if [[ ! -f "${COMPOSE_FILE}" ]]; then
+  echo "Compose file not found: ${COMPOSE_FILE}" >&2
+  ls -la "$(dirname "${COMPOSE_FILE}")" >&2 || true
+  exit 1
+fi
 
-# 2) Start the GemFire locator with JMX, management, and metrics ports exposed.
-echo
-echo "Starting gf-locator"
-docker run -d -e 'ACCEPT_TERMS=y' --rm --name gf-locator --network=gemfire \
-  -p 10334:10334 -p 1099:1099 -p 7070:7070 -p 7999:7999 -p 7777:7777 \
-  gemfire/gemfire:10.2-jdk21 \
-  gfsh start locator --name=locator1 \
-  --jmx-manager-hostname-for-clients=gf-locator \
-  --hostname-for-clients=gf-locator \
-  --J=-Dgemfire.prometheus.metrics.emission=Default \
-  --J=-Dgemfire.prometheus.metrics.port=7777  \
-  --J=-Duser.timezone=America/New_York \
-  --J=-Dgemfire.prometheus.metrics.interval=15s \
-  --J=-Djava.rmi.server.hostname=gf-locator \
-  --J=-Dgemfire.tcp-port=7999
-
-# Wait for locator readiness until JMX connection succeeds.
-until docker exec gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" >/dev/null 2>&1; do
-  echo "Waiting for locator to start..."
-  sleep 2
-done
-echo "Locator is up"
-
-# 3) Apply cluster-wide PDX serialization settings through the locator.
-# Notes: Configure PDX to deserialize to Java objects on reads (read-serialized=false) rather than to read in serialized PDX format,
-#        with hint about the classes to use for deserialization (not needed for client app as Spring Data Gemfire provides the hints),
-#        and persist PDX metadata in default disk store (persistence of data itself is configured at the Region level.
-echo
-echo "Configuring PDX"
-docker exec gf-locator gfsh \
-  -e "connect --jmx-manager=gf-locator[1099]" \
-  -e "configure pdx --read-serialized=false --auto-serializable-classes=com.example.low_latency_ai.domain.AiModel,com.example.low_latency_ai.domain.ProductReview --disk-store"
-# -e "configure pdx --read-serialized=true --disk-store"
-
-# 4) Start a cache server member connected to the locator.
-echo
-echo "Starting gf-server1"
-docker run -d -e 'ACCEPT_TERMS=y' --rm --name gf-server1 --network=gemfire \
-  -p 40404:40404 -p 7080:7080 -p 7977:7977 \
-  gemfire/gemfire:10.2-jdk21 \
-  gfsh start server --name=server1 --locators=gf-locator\[10334\] \
-  --hostname-for-clients=gf-server1 \
-  --start-rest-api=true \
-  --http-service-port=7080 \
-  --J=-Dgemfire.prometheus.metrics.emission=Default \
-  --J=-Dgemfire.prometheus.metrics.port=7977  \
-  --J=-Duser.timezone=America/New_York \
-  --J=-Dgemfire.prometheus.metrics.interval=15s
-
-# Give the server a moment to initialize before region creation.
-sleep 5
-
-# 5) Create the regions for the primary model, sentiment output, and product reviews.
-# Defaults: redundancy is 0 and data persistence is disabled. Statistics are required for expiration/metrics.
-echo
-echo "Creating regions"
-REGION_NAMES=(AiModel SentimentResults ProductReviews)
-for REGION_NAME in "${REGION_NAMES[@]}"; do
-  docker exec gf-locator gfsh \
-    -e "connect --jmx-manager=gf-locator[1099]" \
-    -e "create region --name=$REGION_NAME --type=PARTITION  --enable-statistics=true"
-done
+# Start locator + server:
+# File set via $COMPOSE_FILE; run in detached mode (-d)
+docker compose up -d
 
 echo
-echo "===================="
-echo "GemFire setup complete. To connect with gfsh, run:"
-echo "docker exec -it gf-locator gfsh"
-echo "Then run 'connect'"
+for c in gf-pdx-config gf-regions-init; do
+    code=$(docker inspect "$c" --format '{{.State.ExitCode}}')
+    echo "$c: $([ "$code" -eq 0 ] && echo OK || echo FAIL) (exit=$code)"
+  done
+
+# Verify:
+# docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list regions"
+
+# To check status:
+# docker compose ps
+
+# To start gfsh:
+# `docker compose exec gf-locator gfsh` OR `docker exec -it gf-locator gfsh`
+
+echo
+cat <<'EOF'
+GemFire setup complete.
+
+The following commands are quick operational references for day-to-day local use:
+
+Compose lifecycle:
+  docker compose up -d     (already run by this script)
+  docker compose start     (start previously stopped containers)
+  docker compose stop      (stop containers, keep them)
+  docker compose down      (stop and remove containers and network)
+  docker compose down -v   (also remove named volumes for the project)
+
+Connect with gfsh:
+  docker compose exec gf-locator gfsh
+  connect --jmx-manager=gf-locator[1099]
+
+Graceful cluster stop (inside gfsh):
+  shutdown --include-locators
+EOF

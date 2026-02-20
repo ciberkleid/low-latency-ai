@@ -1,0 +1,17 @@
+# Create required regions for the demo.
+# Current config in this script:
+# - --type=PARTITION (data is partitioned across members, and non-persistent)
+# - --enable-statistics=true enables region stats (required for stats-based expiration,
+#   such as entry TTL/idle-time, and for monitoring metrics)
+# - --if-not-exists keeps reruns idempotent
+# To persist region data, use --type=PARTITION_PERSISTENT.
+# To add redundancy, set --redundant-copies=<N> (default is 0).
+
+connect --jmx-manager=gf-locator[1099]
+
+create region --name=AiModel --type=PARTITION --enable-statistics=true --if-not-exists
+create region --name=SentimentResults --type=PARTITION --enable-statistics=true --if-not-exists
+create region --name=ProductReviews --type=PARTITION --enable-statistics=true --if-not-exists
+
+disconnect
+exit
