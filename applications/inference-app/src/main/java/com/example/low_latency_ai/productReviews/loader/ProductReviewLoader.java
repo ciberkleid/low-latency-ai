@@ -3,10 +3,12 @@ package com.example.low_latency_ai.productReviews.loader;
 import com.example.low_latency_ai.domain.ProductReview;
 import com.example.low_latency_ai.productReviews.repository.ProductReviewRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nyla.solutions.core.io.csv.CsvReader;
 import org.springframework.modulith.ApplicationModuleInitializer;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 class ProductReviewLoader implements ApplicationModuleInitializer {
@@ -32,5 +34,6 @@ class ProductReviewLoader implements ApplicationModuleInitializer {
             repository.save(productReview);
 
         }
+        log.info("Loaded {} product reviews", rowNumber);
     }
 }

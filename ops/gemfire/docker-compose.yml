@@ -91,11 +91,7 @@ services:
       gf-pdx-config:
         condition: service_completed_successfully
     healthcheck:
-      test:
-        - CMD-SHELL
-        - >
-          gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list members" 2>/dev/null
-          | grep -q "server1"
+      test: ["CMD-SHELL", "gfsh -e \"connect --jmx-manager=gf-locator[1099]\" -e \"list members\" 2>/dev/null | grep -q \"server1\""]
       interval: 5s
       timeout: 4s
       retries: 20
