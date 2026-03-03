@@ -9,15 +9,12 @@ if [[ "$JAVA_MAJOR" != "21" ]]; then
   exit 1
 fi
 
-# Build java components (shared domain, client app, server-side function)
-./mvnw -pl libraries/shared-domain -am -DskipTests install # install shared domain library
-./mvnw -DskipTests package  # build app and function
+# Build all Java modules so app and function artifacts are available.
+./mvnw -DskipTests clean install
 
-# Deploy server-side function
-docker cp functions/inference-function/target/inference-function-0.0.1-SNAPSHOT.jar gf-locator:/data
-docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "deploy --jar=/data/inference-function-0.0.1-SNAPSHOT.jar"
+# Start the app; Spring Boot Docker Compose integration manages:
+# - GemFire startup from ops/gemfire/docker-compose.yml
+# - Region initialization (regions-init profile)
+# - Function deployment (function-deploy profile)
 
-# Start client app.
-# This app loads the inference model and product review seed data.
-# It also exposes the APIs to exercise client-side inference and to invoke the function for server-side inference.
 cd applications/inference-app && java -jar target/inference-app-0.0.1-SNAPSHOT.jar

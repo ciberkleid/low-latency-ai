@@ -104,6 +104,8 @@ services:
   gf-regions-init:
     image: gemfire/gemfire:10.2-jdk21
     container_name: gf-regions-init
+    profiles:
+      - regions-init
     volumes:
       - ./regions-init.gfsh:/scripts/regions-init.gfsh:ro
     entrypoint:
@@ -124,6 +126,56 @@ services:
         condition: service_completed_successfully
       gf-server1:
         condition: service_healthy
+    restart: "no"
+
+  gf-function-deploy:
+    image: gemfire/gemfire:10.2-jdk21
+    container_name: gf-function-deploy
+    profiles:
+      - function-deploy
+    depends_on:
+      gf-locator:
+        condition: service_healthy
+      gf-server1:
+        condition: service_healthy
+      gf-regions-init:
+        condition: service_completed_successfully
+    volumes:
+      - ../../functions/inference-function/target:/jars:ro
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        FUNCTION_JAR=""
+        for jar in /jars/*.jar; do
+          [ -f "$$jar" ] || continue
+          case "$${jar##*/}" in
+            original-*.jar) continue ;;
+          esac
+          FUNCTION_JAR="$$jar"
+          break
+        done
+        if [ -z "$$FUNCTION_JAR" ]; then
+          if [ -d /jars/inference-function-0.0.1-SNAPSHOT.jar ]; then
+            echo "Found directory /jars/inference-function-0.0.1-SNAPSHOT.jar (expected a file)." >&2
+            echo "This can happen when Docker created a bind-mount directory before the JAR existed." >&2
+            echo "Remove that directory on host, rebuild, and retry." >&2
+          fi
+          echo "No function JAR found in /jars." >&2
+          echo "Please make sure the function is built on the host first (for example: ./mvnw -DskipTests clean package)." >&2
+          ls -la /jars >&2 || true
+          exit 1
+        fi
+        until gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list members" 2>/dev/null | grep -q "server1"; do
+          echo "Waiting for server1 to be ready..."
+          sleep 2
+        done
+        gfsh \
+          -e "connect --jmx-manager=gf-locator[1099]" \
+          -e "deploy --jar=$$FUNCTION_JAR" \
+          -e "list functions"
+    networks:
+      - gemfire
     restart: "no"
 
 networks:
