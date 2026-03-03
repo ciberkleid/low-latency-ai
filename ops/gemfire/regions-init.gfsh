@@ -1,3 +1,5 @@
+# To enable persistence, edit docker-compose.yml to enable volume and call alternate regions init script (regions-init-persistent.gfsh)
+
 # Create required regions for the demo.
 # Current config in this script:
 # - --type=PARTITION (data is partitioned across members, and non-persistent)

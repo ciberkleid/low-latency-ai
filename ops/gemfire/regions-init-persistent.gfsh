@@ -1,0 +1,18 @@
+# To enable persistence, ensure docker-compose.yml enables volume and calls this regions init script rather than regions-init.gfsh
+
+# Create required regions for the demo.
+# Current config in this script:
+# - --type=PARTITION_PERSISTENT (data is partitioned and persisted to disk)
+# - --enable-statistics=true enables region stats (required for stats-based expiration,
+#   such as entry TTL/idle-time, and for monitoring metrics)
+# - --if-not-exists keeps reruns idempotent
+# - --redundant-copies=1 keeps one redundant copy (requires at least 2 servers for full effect)
+
+connect --jmx-manager=gf-locator[1099]
+
+create region --name=AiModel --type=PARTITION_PERSISTENT --redundant-copies=1 --enable-statistics=true --if-not-exists
+create region --name=SentimentResults --type=PARTITION_PERSISTENT --redundant-copies=1 --enable-statistics=true --if-not-exists
+create region --name=ProductReviews --type=PARTITION_PERSISTENT --redundant-copies=1 --enable-statistics=true --if-not-exists
+
+disconnect
+exit
