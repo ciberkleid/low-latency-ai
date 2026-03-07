@@ -118,7 +118,7 @@ Both inference architectures use GemFire as a shared, low-latency cache for infe
 
 ## Running the Demo
 
-### Pre-requisite:
+### Pre-requisite
 You may need to add the locator and member to your `/etc/hosts` file, as shown here:
 ```shell
 ~ $ cat /etc/hosts
@@ -133,18 +133,33 @@ You may need to add the locator and member to your `/etc/hosts` file, as shown h
 127.0.0.1       gf-server1
 ```
 
+---
+### Start Everything
 
-### Download the Model
-
-Download the model artifacts.
+This single script starts the full demo environment:
+- Downloads the model artifacts (skipped if already present)
+- Builds all Java modules (`shared-domain`, `inference-function`, `inference-app`)
+- Starts `inference-app`, which triggers Spring Boot Docker Compose to:
+  - Start GemFire in Docker
+  - Create the required regions (`AiModel`, `ProductReviews`, `SentimentResults`)
+  - Deploy `inference-function` to GemFire
 
 ```shell
-./ops/scripts/01-download-model.sh
+./ops/scripts/_startup.sh
 ```
 
-When this script finishes, you should see the following files in your local filesystem:
+The client application will be running in the terminal window where you ran the script.
+
+> **Note:** If Spring Boot Docker Compose support is disabled, use `./ops/scripts/optional-setup-gemfire.sh` to manually start GemFire and initialize the regions before running the application.
+
+---
+### Verify Startup
+
+**Model files**
+
+Confirm the model artifacts are present locally:
 ```shell
-$ tree models 
+$ tree models
 models
 └── distilbert
     └── distilbert-base-uncased-finetuned-sst-2-english
@@ -152,17 +167,16 @@ models
         └── tokenizer.json
 ```
 
----
+**Application startup**
 
-### Start GemFire
-
-Start GemFire in Docker and create the Regions needed for the demo.
-
-```shell
-./ops/scripts/02-setup-gemfire.sh
+Confirm the app loaded the model from GemFire by looking for this log entry:
+```txt
+Executing onnx inference service using text: Woohoo! This entry ensures client engine module pulls model from GemFire at startup. Well done!
 ```
 
-When this script finishes, you should see two Docker containers running, one for the locator and one for the cache member:
+**GemFire**
+
+Confirm the two GemFire Docker containers are running:
 ```shell
 $ docker ps --format 'table {{.ID}}\t{{.Names}}'
 CONTAINER ID   NAMES
@@ -170,77 +184,49 @@ f97a8af4b73b   gf-server1
 fc02f25ecc19   gf-locator
 ```
 
-You can also connect to GemFire and verify that the Regions have been created.
+To run commands in GemFire, you can use `docker exec` or the interactive `gfsh` CLI.
 
-To run commands in GemFire, you can use `docker exec` or the `gfsh` CLI.
-Here are examples of the two approaches:
-
-Use `docker exec` to list the regions on the cluster:
+Option 1 — `docker exec` (non-interactive, good for quick checks):
 ```shell
-$ docker exec -it gf-locator gfsh -e "connect --jmx-manager=gf-locator[1099]" -e "list regions"
+$ docker exec -it gf-locator gfsh \
+    -e "connect --jmx-manager=gf-locator[1099]" \
+    -e "list regions" \
+    -e "list functions"
+```
 
-# <Output removed for brevity>
-
+Expected output:
+```
 List of regions
 ----------------
 AiModel
 ProductReviews
 SentimentResults
-```
 
-Use the `gfsh` CLI inside the locator container to list the regions on the cluster:
-
-First run:
-```shell
-docker exec -it gf-locator gfsh
-```
-
-Then, at the `gfsh` prompt in the container, run:
-```gfsh
-connect
-list regions
-```
-
-The following command will shut down the cluster and stop the docker containers:
-```gfsh
-shutdown --include-locators
-```
-
----
-### Start the Application
-
-This script builds three jar files (shared-domain, client app, and GemFire function), and deploys the function to the cluster. It also starts the client application locally.
-
-```shell
-./ops/scripts/03-build-deploy-run-apps.sh
-```
-
-When this script completes you should have the client running in the terminal window where you ran the script.
-
-You should also see the function deployed in GemFire:
-```gfsh
-gfsh>list functions
 Member  | Function
 ------- | --------------------
 server1 | countPositiveReviews
 ```
 
-In addition, you should see that the model artifacts have been loaded into GemFire. Verify that the region called  AiModel has an entry with key="sentiment":
-```gfsh
-gfsh>query --query="select * from /AiModel.keys"
-Result : true
-Limit  : 100
-Rows   : 1
-
-Result
----------
-sentiment
+Option 2 — interactive `gfsh` session:
+```shell
+docker exec -it gf-locator gfsh
 ```
 
-You can also verify that the client app pulled the model from GemFire into memory. Look for the following log entry in the client log:
+Then at the `gfsh` prompt:
+```gfsh
+connect
+list regions
+list functions
+```
 
-```txt
-Executing onnx inference service using text: Woohoo! This entry ensures client engine module pulls model from GemFire at startup. Well done!
+To shut down the cluster and stop the Docker containers:
+```gfsh
+shutdown --include-locators
+```
+
+For additional queries including cached inference results in `SentimentResults`, run:
+```shell
+./ops/scripts/verify-gemfire.sh
 ```
 
 ---
@@ -250,7 +236,7 @@ Send sample client-side inference requests.
 This script exercises the client app API that executes inference locally with the model in-memory.
 
 ```shell
-./ops/scripts/04-send-edge-requests.sh
+./ops/scripts/send-edge-requests.sh
 ```
 
 
@@ -272,16 +258,6 @@ You can also check the client log output. It should look something like this:
 
 ---
 
-## Verifying the Demo
-
-This script contains various queries to validate the demo, including verifying cached inference results in the SentimentResults region.
-
-```shell
-./ops/scripts/05-verify-gemfire.sh
-```
-
----
-
 ### Verify Model Updates
 
 
@@ -289,7 +265,7 @@ Modify the local model or tokenizer (adding an empty line to `tokenizer.json` is
 You can also use this script to make the change:
 
 ```shell
-./ops/scripts/06-update-model.sh
+./ops/scripts/update-model.sh
 ```
 
 Within a few seconds, you should see:
@@ -313,10 +289,10 @@ Here too, the script output will show the latency of the request.
 Notice again the substantial improvement in response time with a cache hit after the first execution.
 
 ```shell
-./ops/scripts/07-send-function-requests.sh
+./ops/scripts/send-function-requests.sh
 ```
 
-You can also reference `05-verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side logging showing the execution of the function (hint: run `show log --member=server1 --lines=100`).
+You can also reference `verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side logging showing the execution of the function (hint: run `show log --member=server1 --lines=100`).
 
 ---
 
@@ -340,7 +316,7 @@ Special thanks to the following contributors whose collaboration and expertise m
 
 ## TODO
 
-1. Invalidate locally cached models when the model in GemFire is updated
+1. Update model in function when model in AiModel Region is updated.
 2. Invalidate or version inference cache entries on model changes
 3. Expand data-local inference test coverage
 4. Avoid adding an entry to etc hosts file
