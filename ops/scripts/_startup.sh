@@ -1,23 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Model: distilbert-base-uncased-finetuned-sst-2-english
+# Startup script for the low-latency AI inference demo.
 #
-# A lightweight transformer model for binary sentiment analysis in English.
+# Steps:
+#   1. Download model artifacts (skipped if already present)
+#      Model: distilbert-base-uncased-finetuned-sst-2-english — a lightweight
+#        transformer for binary sentiment analysis (positive/negative only, no neutral).
+#   2. Verify Java 21 is active (required for GemFire compatibility)
+#   3. Build all Java modules (shared-domain, inference-function, inference-app)
+#   4. Start inference-app, which triggers Spring Boot Docker Compose to:
+#        - Start GemFire in Docker (ops/gemfire/docker-compose.yml)
+#        - Create regions (regions-init profile)
+#        - Deploy inference-function (function-deploy profile)
+#      NOTE: If Spring Boot Docker Compose is disabled in inference-app
+#            (spring.docker.compose.enabled=false), run optional-setup-gemfire.sh
+#            to start GemFire and initialize regions manually before this script.
 #
-# - DistilBERT: a smaller, faster version of BERT created via knowledge distillation
-# - Base: standard DistilBERT model size (6 transformer layers)
-# - Uncased: input text is lowercased before processing
-# - Fine-tuned on SST-2: trained specifically to classify sentiment
-# - English-only: trained and evaluated on English text
-#
-# Note:
-# This model outputs two logits: [negative, positive].
-# It always predicts positive or negative (SST-2 has no neutral class).
+# End state:
+#   - GemFire cluster running with regions, inference-function, model, and
+#     product reviews data all loaded
+#  - inference-app running on port 8080 with model loaded into memory
 
+
+# Step 1: Download model artifacts (skipped if already present)
 DEST=models/distilbert/distilbert-base-uncased-finetuned-sst-2-english
-
-echo "==> Checking model artifacts..."
+echo "==> [1/4] Checking model artifacts..."
 if [[ -f "$DEST/model.onnx" && -f "$DEST/tokenizer.json" ]]; then
   echo "    Model files already present in $DEST, skipping download."
 else
@@ -30,8 +38,8 @@ else
   echo "    Model artifacts downloaded."
 fi
 
-echo "==> Checking Java version..."
-# Require Java 21 for compatibility with GemFire.
+# Step 2: Verify Java 21 is active (required for GemFire compatibility)
+echo "==> [2/4] Checking Java version..."
 JAVA_MAJOR="$(java -version 2>&1 | awk -F '[\".]' '/version/ {print $2; exit}')"
 if [[ "$JAVA_MAJOR" != "21" ]]; then
   echo "Java 21 is required for compatibility with GemFire. Current Java major version: ${JAVA_MAJOR:-unknown}." >&2
@@ -40,17 +48,19 @@ if [[ "$JAVA_MAJOR" != "21" ]]; then
 fi
 echo "    Java $JAVA_MAJOR detected."
 
-# Build all Java modules so app and function artifacts are available:
-# - libraries/shared-domain
-# - functions/inference-function
-# - applications/inference-app
-echo "==> Building Java modules..."
+# Step 3: Build all Java modules (shared-domain, inference-function, inference-app)
+echo "==> [3/4] Building Java modules..."
 ./mvnw -DskipTests clean install
 echo "    Build complete."
 
-# Start the app; Spring Boot Docker Compose integration manages:
-# - GemFire startup from ops/gemfire/docker-compose.yml
-# - Region initialization (regions-init profile)
-# - Function deployment (function-deploy profile)
-echo "==> Starting application..."
+# Step 4: Start inference-app; Spring Boot Docker Compose integration manages:
+#   - GemFire startup (ops/gemfire/docker-compose.yml)
+#   - Region initialization (regions-init profile)
+#   - Function deployment (function-deploy profile)
+#   On startup, the app also:
+#   - Loads the model into GemFire
+#   - Loads product reviews data into GemFire (ops/data/product-reviews.csv)
+#   - Submits a warm-up sentiment request, which triggers the model to be pulled
+#     from GemFire into local memory; the result is cached in GemFire
+echo "==> [4/4] Starting application..."
 cd applications/inference-app && java -jar target/inference-app-0.0.1-SNAPSHOT.jar
