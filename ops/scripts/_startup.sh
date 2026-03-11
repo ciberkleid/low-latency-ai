@@ -25,7 +25,7 @@ set -euo pipefail
 
 # Step 1: Download model artifacts (skipped if already present)
 DEST=models/distilbert/distilbert-base-uncased-finetuned-sst-2-english
-echo "==> [1/4] Checking model artifacts..."
+echo -e "\n==> [1/4] Checking model artifacts...\n"
 if [[ -f "$DEST/model.onnx" && -f "$DEST/tokenizer.json" ]]; then
   echo "    Model files already present in $DEST, skipping download."
 else
@@ -39,7 +39,7 @@ else
 fi
 
 # Step 2: Verify Java 21 is active (required for GemFire compatibility)
-echo "==> [2/4] Checking Java version..."
+echo -e "\n==> [2/4] Checking Java version...\n"
 JAVA_MAJOR="$(java -version 2>&1 | awk -F '[\".]' '/version/ {print $2; exit}')"
 if [[ "$JAVA_MAJOR" != "21" ]]; then
   echo "Java 21 is required for compatibility with GemFire. Current Java major version: ${JAVA_MAJOR:-unknown}." >&2
@@ -49,7 +49,7 @@ fi
 echo "    Java $JAVA_MAJOR detected."
 
 # Step 3: Build all Java modules (shared-domain, inference-function, inference-app)
-echo "==> [3/4] Building Java modules..."
+echo -e "\n==> [3/4] Building Java modules...\n"
 ./mvnw -DskipTests clean install
 echo "    Build complete."
 
@@ -62,5 +62,5 @@ echo "    Build complete."
 #   - Loads product reviews data into GemFire (ops/data/product-reviews.csv)
 #   - Submits a warm-up sentiment request, which triggers the model to be pulled
 #     from GemFire into local memory; the result is cached in GemFire
-echo "==> [4/4] Starting application..."
+echo -e "\n==> [4/4] Starting application...\n"
 cd applications/inference-app && java -jar target/inference-app-0.0.1-SNAPSHOT.jar
