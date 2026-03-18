@@ -14,7 +14,6 @@ services:
       - --jmx-manager-hostname-for-clients=gf-locator
       - --hostname-for-clients=gf-locator
       - --J=-Dgemfire.prometheus.metrics.emission=Default
-      - --J=-Dgemfire.prometheus.metrics.port=7777
       - --J=-Duser.timezone=America/New_York
       - --J=-Dgemfire.prometheus.metrics.interval=15s
       - --J=-Djava.rmi.server.hostname=gf-locator
@@ -24,7 +23,6 @@ services:
       - "1099:1099"
       - "7070:7070"
       - "7999:7999"
-      - "7777:7777"
     # Optional persistent storage (uncomment to persist GemFire files across container recreation):
     # volumes:
     #   - gf_locator_data:/data
@@ -73,13 +71,11 @@ services:
       - --start-rest-api=true
       - --http-service-port=7080
       - --J=-Dgemfire.prometheus.metrics.emission=Default
-      - --J=-Dgemfire.prometheus.metrics.port=7977
       - --J=-Duser.timezone=America/New_York
       - --J=-Dgemfire.prometheus.metrics.interval=15s
     ports:
       - "40404:40404"
       - "7080:7080"
-      - "7977:7977"
     # Optional persistent storage (uncomment to persist GemFire files across container recreation):
     # volumes:
     #   - gf_server1_data:/data
