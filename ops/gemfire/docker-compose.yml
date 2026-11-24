@@ -2,7 +2,7 @@ name: low-latency-ai
 
 services:
   gf-locator:
-    image: gemfire/gemfire:10.2-jdk21
+    image: gemfire/gemfire:10.3-jdk25
     container_name: gf-locator
     environment:
       ACCEPT_TERMS: "y"
@@ -36,7 +36,7 @@ services:
       start_period: 10s
 
   gf-pdx-config:
-    image: gemfire/gemfire:10.2-jdk21
+    image: gemfire/gemfire:10.3-jdk25
     container_name: gf-pdx-config
     volumes:
       - ./pdx-config.gfsh:/scripts/pdx-config.gfsh:ro
@@ -57,7 +57,7 @@ services:
     restart: "no"
 
   gf-server1:
-#    image: gemfire/gemfire:10.2-jdk21
+#    image: gemfire/gemfire:10.3-jdk25
     # Recent GemFire container images use a minimal Red Hat UBI base that omits `libstdc++.so.6`,
     # so `gf-server1` builds a lightweight layer at startup to add the C++ runtime required by
     # ONNX Runtime for your machine's architecture (`arm64` or `amd64`).
@@ -68,7 +68,7 @@ services:
         FROM redhat/ubi10-minimal:latest AS ubi
         RUN microdnf install -y libstdc++ && mkdir -p /out && cp -a /usr/lib64/libstdc++.so.6* /out/
 
-        FROM gemfire/gemfire:10.2-jdk21
+        FROM gemfire/gemfire:10.3-jdk25
         COPY --from=ubi /out/ /usr/lib64/
         RUN ldconfig
     container_name: gf-server1
@@ -107,7 +107,7 @@ services:
       start_period: 15s
 
   gf-regions-init:
-    image: gemfire/gemfire:10.2-jdk21
+    image: gemfire/gemfire:10.3-jdk25
     container_name: gf-regions-init
     profiles:
       - regions-init
@@ -134,7 +134,7 @@ services:
     restart: "no"
 
   gf-function-deploy:
-    image: gemfire/gemfire:10.2-jdk21
+    image: gemfire/gemfire:10.3-jdk25
     container_name: gf-function-deploy
     profiles:
       - function-deploy
