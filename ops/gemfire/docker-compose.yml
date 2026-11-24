@@ -57,7 +57,20 @@ services:
     restart: "no"
 
   gf-server1:
-    image: gemfire/gemfire:10.2-jdk21
+#    image: gemfire/gemfire:10.2-jdk21
+    # Recent GemFire container images use a minimal Red Hat UBI base that omits `libstdc++.so.6`,
+    # so `gf-server1` builds a lightweight layer at startup to add the C++ runtime required by
+    # ONNX Runtime for your machine's architecture (`arm64` or `amd64`).
+    # To force the image to always be rebuilt (not used from cache), use: spring.docker.compose.start.arguments=--build
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM redhat/ubi10-minimal:latest AS ubi
+        RUN microdnf install -y libstdc++ && mkdir -p /out && cp -a /usr/lib64/libstdc++.so.6* /out/
+
+        FROM gemfire/gemfire:10.2-jdk21
+        COPY --from=ubi /out/ /usr/lib64/
+        RUN ldconfig
     container_name: gf-server1
     environment:
       ACCEPT_TERMS: "y"
