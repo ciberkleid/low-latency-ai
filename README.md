@@ -236,7 +236,7 @@ Send sample client-side inference requests.
 This script exercises the client app API that executes inference locally with the model in-memory.
 
 ```shell
-./ops/scripts/send-edge-requests.sh
+./ops/scripts/edge-request.sh
 ```
 
 
@@ -289,7 +289,7 @@ Here too, the script output will show the latency of the request.
 Notice again the substantial improvement in response time with a cache hit after the first execution.
 
 ```shell
-./ops/scripts/send-function-requests.sh
+./ops/scripts/function-request.sh
 ```
 
 You can also reference `verify-gemfire.sh` again for additional queries to inspect changes to the SentimentResults region or to view the server-side logging showing the execution of the function (hint: run `show log --member=server1 --lines=100`).
@@ -320,3 +320,4 @@ Special thanks to the following contributors whose collaboration and expertise m
 2. Invalidate or version inference cache entries on model changes
 3. Expand data-local inference test coverage
 4. Avoid adding an entry to etc hosts file
+5. Upgrade Gemfire (and enable compatability with Java 25)
